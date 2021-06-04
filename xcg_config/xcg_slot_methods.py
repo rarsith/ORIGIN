@@ -1,0 +1,13 @@
+SLOTS_METHODS = {'m1':'sf_csh',
+                 'm2':'mf_csh',
+                 'm3':'sf_geo',
+                 'm4':'geo_bake',
+                 'm5':'geo_sim',
+                 'm6':'scn_exp',
+                 'm7':'img_exp',
+                 'm8':'anm_crv',
+                 'm9':'scatter',
+                 'm10':'p_exp',
+                 'm11':'assign_exp',
+                 'm12':'cfg_scn_exp',
+                 'm13':'cfg_exp'}
