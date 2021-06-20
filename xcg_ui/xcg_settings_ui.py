@@ -4,7 +4,7 @@ from PySide2 import QtWidgets
 from xcg_data_base import xcg_db_actions as xac
 from xcg_config import xcg_validation as xval
 from xcg_config import xcg_slot_methods as xslop
-from RND import xcg_task_imports_from_wdg, xcg_task_publishing_slots_wdg
+from xcg_database_custom_widgets import xcg_task_imports_from_core, xcg_task_publishing_slots_core
 
 
 class CreateTasksSchema(QtWidgets.QWidget):
@@ -18,8 +18,8 @@ class CreateTasksSchema(QtWidgets.QWidget):
         self.create_connections()
 
     def create_widgets(self):
-        self.impots_from_wdg = xcg_task_imports_from_wdg.TasksImportFromUI()
-        self.publish_slots_wdg = xcg_task_publishing_slots_wdg.PublishSlotsWidgetUI()
+        self.impots_from_wdg = xcg_task_imports_from_core.TasksImportFromUI()
+        self.publish_slots_wdg = xcg_task_publishing_slots_core.PublishSlotsWidgetUI()
 
         self.defined_categories_cb  = QtWidgets.QComboBox()
         self.defined_categories_cb.addItems(self.get_defined_categories())

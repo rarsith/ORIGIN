@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
 
     app = QtWidgets.QApplication(sys.argv)
-    pub_id = '60b7cabcca7fdd099e5d32cb'
+    pub_id = '60b7ed9ebae5ff09eb8c8b40'
     sl_collection = 'publish_slots_groom'
     test_dialog = SlotComponentsViewerCore(slot_pub_id=pub_id, slot_collection=sl_collection)
 
