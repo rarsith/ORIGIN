@@ -1,0 +1,503 @@
+{
+  "root":{
+    "name": "tasks_schema",
+    "type": "shot",
+    "subtype": "vfx",
+    "tasks": {
+      "plateio": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {},
+      "pub_slots": {
+        "master": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "vport": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        }
+      },
+      "subtask": {}
+    },
+      "cam_track": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "plateio": {}
+      },
+      "pub_slots": {
+        "distortion": {
+          "type": "cfg",
+          "method": "cfg_scn_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "shot_cam": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "HO": {
+          "type": "csh",
+          "method": "sf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "locators": {
+          "type": "img",
+          "method": "sf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "wit_cam_01": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "wit_cam_02": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "wit_cam_03": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "wit_cam_04": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "wit_cam_05": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        }
+      }
+    },
+      "body_track": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "cam_track": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "rend_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "proxy_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "util_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "util_rig": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "anm_crv": {
+          "type": "cfg",
+          "method": "anm_crv",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        }
+      }
+    },
+      "layout": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "cam_track": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "positions": {
+          "type": "cfg",
+          "method": "scatter",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "content": {
+          "type": "cfg",
+          "method": "cfg_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "shot_cam": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "anm_crv": {
+          "type": "cfg",
+          "method": "anm_crv",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "proj_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "tags": {
+          "type": "cfg",
+          "method": "cfg_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        }
+      }
+    },
+      "animation": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "cam_track": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "rend_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "proxy_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "util_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "util_rig": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "anm_crv": {
+          "type": "cfg",
+          "method": "anm_crv",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        },
+        "shot_cam": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": false,
+          "active": true
+        }
+      }
+    },
+      "cfx": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "animation": {},
+        "body_track": {},
+        "cam_track": {},
+        "layout": {}
+      },
+      "pub_slots": {
+        "rend_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "proxy_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "fx": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "animation": {},
+        "body_track": {},
+        "cam_track": {},
+        "layout": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "rend_geo": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "light_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "vdb": {
+          "type": "csh",
+          "method": "scn_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "shot_sculpt": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "animation": {},
+        "body_track": {},
+        "cam_track": {},
+        "layout": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "rend_geo": {
+          "type": "csh",
+          "method": "mf_csh",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "light_rend": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "animation": {},
+        "body_track": {},
+        "cam_track": {},
+        "layout": {},
+        "plateio": {},
+        "fx": {},
+        "cfx": {}
+      },
+      "pub_slots": {
+        "render_set": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "roto": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "plateio": {},
+        "cam_track": {}
+      },
+      "pub_slots": {
+        "roto_out": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "paint": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "plateio": {},
+        "cam_track": {}
+      },
+      "pub_slots": {
+        "paint_out": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "compositing": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "retime": {},
+        "repo": {},
+        "light_rend": {},
+        "paint": {},
+        "roto": {}
+      },
+      "pub_slots": {
+        "comp_out": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "retime": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "plateio": {}
+      },
+      "pub_slots": {
+        "retime_crv": {
+          "type": "cfg",
+          "method": "anm_crv",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        },
+        "retime_img": {
+          "type": "img",
+          "method": "img_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    },
+      "repo": {
+      "active": true,
+      "status": "NOT-STARTED",
+      "artist": "None",
+      "imports_from": {
+        "cam_track": {},
+        "plateio": {}
+      },
+      "pub_slots": {
+        "repo_data": {
+          "type": "cfg",
+          "method": "cfg_exp",
+          "used_by": [],
+          "source": {},
+          "reviewable": true,
+          "active": true
+        }
+      }
+    }
+    }
+  }
+}

@@ -1,8 +1,8 @@
 import sys
 from PySide2 import QtWidgets, QtCore
 
-from xcg_data_base import xcg_db_actions as xac
-from xcg_config import xcg_validation as xval
+from origin_data_base import xcg_db_actions as xac
+from origin_config import xcg_validation as xval
 
 class CreateShotUI(QtWidgets.QDialog):
 

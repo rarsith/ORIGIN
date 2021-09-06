@@ -1,0 +1,17 @@
+{
+  "root": {
+    "name": "publish_slot_template",
+    "type": "",
+    "subtype": "",
+    "pub_slot_name": {
+      "type": "",
+      "method": "",
+      "used_by": [],
+      "source": {},
+      "reviewable": true,
+      "active": true
+    }
+  }
+}
+
+

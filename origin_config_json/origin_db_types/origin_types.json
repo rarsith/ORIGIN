@@ -1,0 +1,8 @@
+{
+  "#project":["show", "library"],
+  "#branch": ["assets", "sequences","references","communication"],
+  "#assets": ["character", "prop", "environment"],
+  "#sequences":["shot"],
+  "#subtype": ["build","vfx","commercials","episodic"],
+}
+

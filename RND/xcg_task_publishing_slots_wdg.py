@@ -1,12 +1,12 @@
 import sys
 import pprint
 from PySide2 import QtWidgets, QtCore, QtGui
-from xcg_data_base import xcg_db_connection as xcon
-from xcg_config import xcg_validation as xval
-from xcg_config import xcg_slot_methods as xslop
+from origin_data_base import xcg_db_connection as xcon
+from origin_config import xcg_validation as xval
+from origin_config import xcg_slot_methods as xslop
 
 
-from xcg_data_base import xcg_db_actions as xac
+from origin_data_base import xcg_db_actions as xac
 
 
 

@@ -6,7 +6,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 class AssetViewer(QtWidgets.QWidget):
     ASSET_DIR_PATH = "/Users/arsithra/Downloads/python_in_production_project_files/12-python_in_production-a_practical_json_example_part_2"
-    JSON_FILE_NAME = "assets.json"
+    JSON_FILE_NAME = "assets_tasks_schema.json"
 
     IMAGE_WIDTH = 400
     IMAGE_HEIGHT = IMAGE_WIDTH / 1.77778

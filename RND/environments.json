@@ -1,0 +1,115 @@
+{
+  "root": {
+    "name": "tasks_schema",
+    "type": "environments",
+    "subtype": "build",
+    "tasks":{
+      "lidar": {
+          "active": true,
+          "status": "NOT-STARTED",
+          "artist": "None",
+          "imports_from": {},
+          "pub_slots": {
+            "img": {
+              "type": "img",
+              "method": "img_exp",
+              "used_by": [
+                "modeling"
+              ],
+              "source": {},
+              "reviewable": true,
+              "active": true
+            },
+            "pdf": {
+              "type": "scn",
+              "method": "img_exp",
+              "used_by": [],
+              "source": {},
+              "reviewable": true,
+              "active": true
+            }
+          }
+        },
+      "concept": {
+          "active": true,
+          "status": "NOT-STARTED",
+          "artist": "None",
+          "imports_from": {},
+          "pub_slots": {
+            "img": {
+              "type": "img",
+              "method": "img_exp",
+              "used_by": [
+                "modeling"
+              ],
+              "source": {},
+              "reviewable": true,
+              "active": true
+            },
+            "pdf": {
+              "type": "scn",
+              "method": "img_exp",
+              "used_by": [],
+              "source": {},
+              "reviewable": true,
+              "active": true
+            }
+          }
+        },
+      "scatter": {
+          "active": true,
+          "status": "NOT-STARTED",
+          "artist": "None",
+          "imports_from": {
+            "concept": {}
+          },
+          "pub_slots": {
+            "ref_geo": {
+              "type": "geo",
+              "method": "sf_csh",
+              "used_by": [
+                "modeling",
+                "surfacing"
+              ],
+              "source": {},
+              "reviewable": false,
+              "active": true
+            },
+            "displ": {
+              "type": "img",
+              "method": "geo_bake",
+              "used_by": [
+                "texturing",
+                "surfacing"
+              ],
+              "source": {},
+              "reviewable": true,
+              "active": true
+            },
+            "normal": {
+              "type": "img",
+              "method": "geo_bake",
+              "used_by": [
+                "texturing",
+                "surfacing"
+              ],
+              "source": {},
+              "reviewable": false,
+              "active": true
+            },
+            "cavity": {
+              "type": "img",
+              "method": "geo_bake",
+              "used_by": [
+                "texturing",
+                "surfacing"
+              ],
+              "source": {},
+              "reviewable": false,
+              "active": true
+            }
+          }
+        }
+      }
+    }
+  }
