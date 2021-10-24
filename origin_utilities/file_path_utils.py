@@ -24,7 +24,9 @@ def get_highest_folder_version(folder_path):
         
         highest = max(all_folders)
         get_digit = filter(None, re.split(r'(\d+)', highest))
-        return  "{0}{1:04d}".format(("v"),(int(get_digit[1])+1))      
+        get_digit_list = (list(get_digit))
+        
+        return  "{0}{1:04d}".format(("v"),(int(get_digit_list[1])+1))      
 
     else:
         return "{0}{1:04d}".format(("v"),(int(1)))
@@ -40,8 +42,9 @@ def get_next_file_version(folder_path):
         
         highest = max(all_files)
         get_digit = filter(None, re.split(r'(\d+)', highest))
-
-        return  "{0}{1:04d}".format(("v"),(int(get_digit[1])+1))      
+        get_digit_list = (list(get_digit))
+        
+        return  "{0}{1:04d}".format(("v"),(int(get_digit_list[1])+1))      
 
     else:
         return "{0}{1:04d}".format(("v"),(int(1)))

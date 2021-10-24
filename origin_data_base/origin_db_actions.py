@@ -1,5 +1,6 @@
-import uuid
+import os
 import re
+import uuid
 import getpass
 from bson import ObjectId
 from bson.dbref import DBRef
@@ -13,6 +14,20 @@ from origin_data_base import xcg_db_connection as xcon
 xnow = OriginDateTime()
 
 #DATABASE UTILITIES
+
+os.environ['ORIGIN_PROJECT'] = 'Test'
+os.environ['ORIGIN_PROJECT_BRANCH'] = 'assets'
+os.environ['ORIGIN_PROJECT_CATEGORY'] = 'characters'
+os.environ['ORIGIN_PROJECT_ENTITY'] = 'hulk'
+os.environ['ORIGIN_ENTITY_TASK'] = 'modeling'
+#
+#
+show_name = os.environ.get('ORIGIN_PROJECT')
+branch_name = os.environ.get('ORIGIN_PROJECT_BRANCH')
+category_name = os.environ.get('ORIGIN_PROJECT_CATEGORY')
+entity_name = os.environ.get('ORIGIN_PROJECT_ENTITY')
+task_name = os.environ.get('ORIGIN_ENTITY_TASK')
+
 
 def generate_unique_id():
     unique_id = str(uuid.uuid4())
@@ -32,7 +47,7 @@ def db_query(db_branch, item, **anchor):
 
 #DEPRICATE THIS
 ######
-def db_content_summary(show_name, object_type):
+def db_content_summary(object_type):
     """Returns the content of the assets or the shots, paired with the parent category/sequence.
     To be used to create arrays of dictionaries to be queried for the existence of an item."""
     valid_object_types = ['assets','shots','sequences','show', 'publishes']
@@ -70,7 +85,7 @@ def db_content_summary(show_name, object_type):
 ######
 
 ######
-def get_sub_branches(show_name, branch_name):
+def get_sub_branches():
     sub_branches_list = []
     db = xcon.server.xchange
     query_path = "structure"+"."+branch_name
@@ -81,7 +96,7 @@ def get_sub_branches(show_name, branch_name):
     return sub_branches_list[0]
 
 
-def get_sub_branches_content(show_name, branch_name, category_name):
+def get_sub_branches_content():
     db = xcon.server.xchange
     query_path = "structure" + "." + branch_name + "." + category_name
     all_branches = db.show.find({"show_name": show_name, "active": True},
@@ -1387,18 +1402,18 @@ if __name__=="__main__":
 
     db = xcon.server.xchange
 
-    os.environ['XCG_PROJECT'] = 'Test'
-    os.environ['XCG_PROJECT_BRANCH'] = 'assets'
-    os.environ['XCG_PROJECT_CATEGORY'] = 'characters'
-    os.environ['XCG_PROJECT_ENTITY'] = 'hulk'
-    os.environ['XCG_ENTITY_TASK'] = 'modeling'
+    os.environ['ORIGIN_PROJECT'] = 'Test'
+    os.environ['ORIGIN_PROJECT_BRANCH'] = 'assets'
+    os.environ['ORIGIN_PROJECT_CATEGORY'] = 'characters'
+    os.environ['ORIGIN_PROJECT_ENTITY'] = 'hulk'
+    os.environ['ORIGIN_ENTITY_TASK'] = 'modeling'
     #
     #
-    show_name = os.environ.get('XCG_PROJECT')
-    branch_name = os.environ.get('XCG_PROJECT_BRANCH')
-    category_name = os.environ.get('XCG_PROJECT_CATEGORY')
-    entity_name = os.environ.get('XCG_PROJECT_ENTITY')
-    task_name = os.environ.get('XCG_ENTITY_TASK')
+    show_name = os.environ.get('ORIGIN_PROJECT')
+    branch_name = os.environ.get('ORIGIN_PROJECT_BRANCH')
+    category_name = os.environ.get('ORIGIN_PROJECT_CATEGORY')
+    entity_name = os.environ.get('ORIGIN_PROJECT_ENTITY')
+    task_name = os.environ.get('ORIGIN_ENTITY_TASK')
 
     current_user = get_current_user()
 

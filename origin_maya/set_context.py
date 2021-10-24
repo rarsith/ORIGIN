@@ -1,19 +1,19 @@
 import os
 
 try:
-    xchange_root =  os.environ["XCHANGE_ROOT"]
+    origin_root =  os.environ["ORIGIN_ROOT"]
 except:
-    print "XCHANGE_ROOT environment variable not correctly configured"
+    print ("ORIGIN_ROOT environment variable not correctly configured")
 
 else:
     import sys
-    print (xchange_root)
-    if not xchange_root in sys.path:
-        sys.path.append(xchange_root)
+    print (origin_root)
+    if not origin_root in sys.path:
+        sys.path.append(origin_root)
 
 
-os.environ['XCG_PROJECT']='Test'
-os.environ['XCG_PROJECT_BRANCH']='sequences'
-os.environ['XCG_PROJECT_CATEGORY']='TST'
-os.environ['XCG_PROJECT_ENTITY']= '0100'
-os.environ['XCG_ENTITY_TASK']='animation'
+os.environ['ORIGIN_PROJECT']='Test'
+os.environ['ORIGIN_PROJECT_BRANCH']='assets'
+os.environ['ORIGIN_PROJECT_CATEGORY']='characters'
+os.environ['ORIGIN_PROJECT_ENTITY']= 'hulk'
+os.environ['ORIGIN_ENTITY_TASK']='modeling'
