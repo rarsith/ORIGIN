@@ -97,6 +97,39 @@ class OriginCreate():
 
         return name
 
+    def db_asset(self, name, asset_type=''):
+        get_root = OriginEnvar.show_name
+        get_branch = OriginEnvar.branch_name
+        get_category = OriginEnvar.category
+        sel_id = OriginId.create_id("root", get_root)
+        insert_entry = OriginDbPath.origin_path("structure", get_branch, get_category, name)
+        self.db.show.update_one({"_id": sel_id}, {"$set": {insert_entry: {}}})
+        print("{} asset created".format(name))
+
+        asset_id = OriginId.create_id(get_root, get_branch, get_category, name)
+        self.db.assets.insert_one(
+            {
+                "_id": asset_id,
+                "show_name": get_root,
+                "entry_name": name,
+                "type": "asset",
+                "category": get_category,
+                "status": " ",
+                "assignment": {},
+                "tasks": otmpq.get_show_defaults(get_root, get_category, "tasks"),
+                "master_bundle": [],
+                "active": True,
+                "definition": xvalid.DEFAULT_ASSET_DEFINITION,
+                "date": xnow.return_date(),
+                "time": xnow.return_time(),
+                "owner": getpass.getuser()
+            }
+        )
+
+
+
+    def set_type(self):
+        pass
 
 
 class OriginQuery():
@@ -1443,7 +1476,7 @@ if __name__=="__main__":
     from origin_data_base import OriginEnvar
 
     OriginEnvar.show_name = "JUJU"
-    OriginEnvar.branch_name = "sequences"
+    OriginEnvar.branch_name = "new_new_branch"
     OriginEnvar.category = "TST"
     OriginEnvar.entry_name = "0100"
     OriginEnvar.task_name = "light_rend"
@@ -1453,6 +1486,7 @@ if __name__=="__main__":
     # ocreate.db_project(name="JUJU")
     ocreate.db_branch(name="new_new_branch")
     ocreate.db_category(name="LOLO")
+    ocreate.db_asset(name="hulky")
 
     # OriginCreate.Asset().at_path()
     # print (ocreate)
