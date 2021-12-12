@@ -92,7 +92,6 @@ def get_sub_branches_content(show_name, branch_name, category_name):
 
 
 #DATABASE CREATORS
-
 def define_roots_types(root_type):
     db = xcon.server.xchange
     cursor = db['roots_types']
@@ -205,6 +204,7 @@ def create_shot(show_name, category, entry_name, status ='NOT-STARTED', definiti
                     "status": status,
                     "content":[],
                     "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
+                    "master_bundle": {},
                     "active": True,
                     "definition":otmpq.get_show_defaults(show_name,"shots","definition"),
                     "date": xnow.return_date(),
@@ -231,6 +231,7 @@ def create_asset(show_name, category, entry_name, status ='NOT-STARTED', definit
             "status": status,
             "assignment": {},
             "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
+            "master_bundle":[],
             "active": True,
             "definition": definition,
             "date": xnow.return_date(),
@@ -263,7 +264,6 @@ def create_subtask(show_name, entry_category, parent_category, entry_name, task_
 
 
 # OMIT FUNC
-
 def omit_sequence(show_name, entry_name):
     db = xcon.server.xchange
     db.sequences.update({"show_name":show_name, "entry_name":entry_name},
@@ -319,7 +319,6 @@ def rem_assets_from_shot(show_name, show_branch, category, entry_name, asset_to_
 
 
 #SET FUNC
-
 def update_task_imports_from(show_name, branch_category, parent_category, entry_name, task_name, imports_from=[]):
     for each in imports_from:
         db = xcon.server.xchange
@@ -451,6 +450,7 @@ def add_asset_to_shot02(show_name, seq_name, shot_name, asset_name, asset_catego
                 asset_path = "assignment" + "." + asset_name
                 db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
                                 {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
+
 
 def add_asset_to_shot(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
     asset_categories = xvalid.VALID_ASSETS_CATEGORIES
@@ -666,7 +666,7 @@ def get_tasks_content(show_name, branch_category, parent_category, entry_name):
         pass
 
 
-def get_tasks(show_name, branch_category, parent_category, entry_name):
+def get_tasks(show_name, branch_category, parent_category, entry_name, active=True):
     try:
         entry_tasks = []
         if branch_category == None or parent_category == None:
@@ -1230,6 +1230,29 @@ def db_pubslot_ver_increase(collection_name, show_name, entity_type, entity_name
         return "{0}{1:04d}".format("v", (int(1)))
 
 
+def db_master_bundle_ver_increase(collection_name, show_name, entity_type, entity_name):
+
+    get_versions = xutil.db_find_key(collection_name, "version",
+                                                       show_name=show_name,
+                                                       category=entity_type,
+                                                       entry_name=entity_name
+                                                       )
+
+    if not len(get_versions) < 1:
+        conv_to_int = []
+
+        for versions in get_versions:
+            conv_to_int.append(versions)
+
+        highest = max(conv_to_int)
+        get_digit = re.findall('\d+', highest)
+
+        return "{0}{1:04d}".format("v", (int(get_digit[0]) + 1))
+
+    else:
+        return "{0}{1:04d}".format("v", (int(1)))
+
+
 def db_publish(show_name, branch_name, category, entry_name, task_name, bundle_type, bundle_version, status):
 
     version = db_task_ver_increase(show_name, category, entry_name, task_name)
@@ -1321,10 +1344,49 @@ def pub_slot_publish(show_name, branch_name, category, entry_name, task_name, pu
     print ("{0} slot has been published".format(pub_slot))
     return(published_slot.inserted_id), collection_name
 
+def create_master_bundle(show_name, branch_name, category, entry_name):
+    status = "PENDING-REVIEW"
+    collection_name = "bundles"
+    common_id = ObjectId()
+    entity_tasks = get_tasks(show_name, branch_name, category, entry_name)
+    version = db_master_bundle_ver_increase(collection_name, show_name, category, entry_name)
+    set_display_name = [entry_name, "master_bundle"]
 
-def add_db_id_reference(collection, sel_doc_id, sel_doc_slot, id_to_add, from_collection):
     db = xcon.server.xchange
-    db[collection].update_one({"_id":ObjectId(sel_doc_id)},{"$push":{sel_doc_slot:DBRef(from_collection, id_to_add)}})
+    published_slot = db[collection_name].insert_one({
+        "_id": common_id,
+        "show_name": show_name,
+        "entry_name": entry_name,
+        "category": category,
+        "branch": branch_name,
+        "display_name": "_".join(set_display_name),
+        "artist": get_current_user(),
+        "status": status,
+        "version": version,
+        "date": xnow.return_date(),
+        "time": xnow.return_time(),
+        "bundle_slots":dict.fromkeys(entity_tasks,[])
+    }
+    )
+
+    xcon.server.close()
+    print("{0} bundle has been published".format("_".join(set_display_name)))
+    return published_slot.inserted_id, collection_name
+
+
+def select_entity(collection, show_name, branch_name, category, entry_name, version):
+    bundle_slots = list()
+    db = xcon.server.xchange
+    select_bundle = db[collection].find({"show_name": show_name, "branch":branch_name, "category":category, "entry_name": entry_name, "version":version})
+    for slots in select_bundle:
+        bundle_slots.append(slots)
+
+    return bundle_slots[0]
+
+def add_db_id_reference(collection, parent_doc_id, parent_doc_slot, id_to_add, from_collection):
+    db = xcon.server.xchange
+    db[collection].update_one({"_id":ObjectId(parent_doc_id)},{"$push":{parent_doc_slot:DBRef(from_collection, id_to_add)}})
+
 
 
 def get_db_referenced_attr(source_collection, source_id, source_attr, find_attr):
@@ -1402,12 +1464,24 @@ if __name__=="__main__":
 
     current_user = get_current_user()
 
-    components = get_pub_slots(show_name, branch_name, category_name, entity_name, task_name)
-    main_publish = db_publish(show_name, branch_name, category_name, entity_name, task_name, branch_name, "0012",
-                              "PENDING-REVIEW")
-    for component in components:
-        secondary_publish = pub_slot_publish(show_name, branch_name, category_name, entity_name, task_name, component)
-        add_db_id_reference(main_publish[1], main_publish[0], "publishing_slots", secondary_publish[0],secondary_publish[1])
+    v = get_tasks(show_name, branch_name, category_name, entity_name)
+
+    # components = get_pub_slots(show_name, branch_name, category_name, entity_name, task_name)
+    # main_publish = db_publish(show_name, branch_name, category_name, entity_name, task_name, branch_name, "0012",
+    #                           "PENDING-REVIEW")
+    # for component in components:
+    #     secondary_publish = pub_slot_publish(show_name, branch_name, category_name, entity_name, task_name, component)
+    #     add_db_id_reference(main_publish[1], main_publish[0], "publishing_slots", secondary_publish[0],secondary_publish[1])
+
+    create_master_bundle(show_name, branch_name, category_name, entity_name)
+    v = select_entity("bundles", show_name, branch_name, category_name, entity_name,"v0001")
+    p = select_entity("publishes", show_name, branch_name, category_name, entity_name, "v0001")
+    path_elements = ['bundle_slots', task_name]
+    path_to_write = '.'.join(path_elements)
+    bb = add_db_id_reference("bundles", str(v["_id"]), path_to_write, str(p["_id"]),"publishes")
+
+
+
 
     # cc = get_db_publishes_ids ("publishes", "Dark", "assets", "characters", "nuoa")
 

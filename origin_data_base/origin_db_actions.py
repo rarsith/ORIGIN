@@ -467,6 +467,7 @@ def add_asset_to_shot02(show_name, seq_name, shot_name, asset_name, asset_catego
                 db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
                                 {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
 
+
 def add_asset_to_shot(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
     asset_categories = xvalid.VALID_ASSETS_CATEGORIES
 

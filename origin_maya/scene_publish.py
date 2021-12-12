@@ -22,7 +22,6 @@ importlib.reload(oos)
 def get_slot_with_content(root_group):
     list_content = list()
     get_content = cmds.listRelatives(root_group)
-    print (get_content)
     
     for each in get_content:
         not_empty = cmds.listRelatives(each)
@@ -40,7 +39,6 @@ def get_scene_pub_slots():
                                     oenv.get_entity(),
                                     oenv.get_task()
                                     )
-    print (pub_slots)
     return pub_slots.keys()
 
 
@@ -101,7 +99,6 @@ def get_entry_attr(object_name, attr_name):
 
 def publish_slot(slot_name, publish_path):
     valid_slot = get_slot_with_content(oenv.get_entity())
-    print (valid_slot)
     if valid_slot:
         for each in valid_slot:
             get_db_name = get_entry_attr(each, "origin_name")

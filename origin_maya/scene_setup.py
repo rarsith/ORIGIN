@@ -18,8 +18,6 @@ cat = os.environ.get('ORIGIN_PROJECT_CATEGORY')
 ent = os.environ.get('ORIGIN_PROJECT_ENTITY')
 ent_task = os.environ.get('ORIGIN_ENTITY_TASK')
 
-print (proj_root,proj,br,cat,ent,ent_task)
-
 # vv = os.path.join(proj_root, proj, br, cat, ent, ent_task)
 
 def get_db_pub_slots():

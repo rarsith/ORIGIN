@@ -18,7 +18,7 @@ def save_maya_wip_file():
     
     print ("Saved successfully: {1}{0}".format(file_name, path_to_folder ))
 
-save_maya_file()
+save_maya_wip_file()
 
 
         
