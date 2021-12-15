@@ -12,11 +12,11 @@ def tasks_schema(category):
     return tasks_read["tasks"]
 
 def entry_definition(category):
-    json_load = oread.open_json("../origin_config_json/origin_db_defaults/shots_definition.json")
+    json_load = oread.open_json("../origin_config_json/origin_db_defaults/entries_definition.json")
     tasks_read = oread.read_dictionary(json_load, category)
     return tasks_read["definition"]
 
 
 if __name__=="__main__":
-    tt = entry_definition("shot")
+    tt = entry_definition("build")
     pprint.pprint (tt.keys())

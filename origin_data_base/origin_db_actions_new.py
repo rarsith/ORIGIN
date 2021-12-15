@@ -13,12 +13,91 @@ from origin_data_base import OriginEnvar
 
 xnow = OriginDateTime()
 
-#DATABASE UTILITIES
-def show_code_gen(data):
-    return data
+class JunkStorage():
+    def db_asset_category(self, name, category_type):
+        root_id = OriginId.create_id("root", OriginEnvar.show_name)
+        insert_entry = OriginDbPath.origin_path("structure", "assets", name)
+        insert_definition = OriginDbPath.origin_path("show_defaults", (name + "_tasks"))
+        self.db.show.update_one({"_id": root_id}, {"$set": {insert_entry: []}})
+        self.db.show.update_one({"_id":root_id},{"$set": {insert_definition:otmp.tasks_schema(category_type)}})
+        print("{} category created".format(name))
+        return name
 
+    def db_shot_category(self, name, category_type):
+        root_id = OriginId.create_id("root", OriginEnvar.show_name)
+        insert_entry = OriginDbPath.origin_path("structure", OriginEnvar.branch_name, name)
+        insert_definition = OriginDbPath.origin_path("show_defaults",(name + "_tasks"))
+        self.db.show.update_one({"_id": root_id},{"$set": {insert_entry:[]}})
+        self.db.show.update_one({"_id": root_id},{"$set": {insert_definition:otmp.tasks_schema(category_type)}})
+        print ("{} sequence created".format(name))
+        return name
 
+class OriginTasksTypes():
 
+    @property
+    def characters(self):
+        return "character"
+
+    @property
+    def props(self):
+        return 'prop'
+
+    @property
+    def environments(self):
+        return 'environment'
+
+    @property
+    def shots(self):
+        return 'shot'
+
+class OriginBranchTypes():
+    @property
+    def build(self):
+        return "build"
+
+    @property
+    def sequences(self):
+        return "shots"
+
+    @property
+    def library(self):
+        return 'lib_asset'
+
+    @property
+    def reference(self):
+        return 'ref_asset'
+
+class OriginAssetTypes():
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+    @classmethod
+    def build(cls):
+        pass
+
+    @classmethod
+    def shot(cls):
+        pass
+
+class OriginDefaults():
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+    @property
+    def root_definitions(self):
+        return "definition"
+
+    @property
+    def root_tasks(self):
+        return "tasks"
+
+    def get_show_defaults(self, default_type):
+        root_id = OriginId.create_id("root", OriginEnvar.show_name)
+        query_path = "show_defaults" + "." + (OriginEnvar.category + "_" + default_type)
+        category_tasks = self.db.show.find({"_id": root_id},{'_id': 0, query_path: 1})
+
+        for data in category_tasks:
+            return data["show_defaults"][(OriginEnvar.category + "_" + default_type)]
 
 class OriginId():
     """
@@ -42,14 +121,45 @@ class OriginDbPath():
             id_elements.append(elem)
         return str(".".join(id_elements))
 
-class OriginCreate():
+    def db_show_path(self):
+        return self.origin_path("root",OriginEnvar.show_name)
 
-    def __init__(self, show_name='', entry_name='', branch_name='', category='',task_name=''):
-        self.show_name = show_name
-        self.branch_name = branch_name
-        self.category = category
-        self.entry_name = entry_name
-        self.task_name = task_name
+    def db_branch_path(self):
+        return self.origin_path(OriginEnvar.show_name,
+                                OriginEnvar.branch_name
+                                )
+
+    def db_category_path(self):
+        return self.origin_path(OriginEnvar.show_name,
+                                OriginEnvar.branch_name,
+                                OriginEnvar.category
+                                )
+
+    def db_entry_path(self):
+        return self.origin_path(OriginEnvar.show_name,
+                                OriginEnvar.branch_name,
+                                OriginEnvar.category,
+                                OriginEnvar.entry_name)
+
+    def db_task_path(self):
+        return self.origin_path(OriginEnvar.show_name,
+                                OriginEnvar.branch_name,
+                                OriginEnvar.category,
+                                OriginEnvar.entry_name,
+                                OriginEnvar.task_name)
+
+    def db_show_structure_path(self):
+        return self.origin_path("structure", OriginEnvar.branch_name)
+
+
+class OriginDbRef():
+    @classmethod
+    def add_db_id_reference(cls, collection, parent_doc_id, destination_slot, id_to_add, from_collection):
+        db = xcon.server.xchange
+        db[collection].update_one({"_id":parent_doc_id}, {"$push":{destination_slot:DBRef(from_collection, id_to_add)}})
+
+class OriginCreate():
+    def __init__(self):
         self.db = xcon.server.xchange
 
     def db_project(self, name):
@@ -60,8 +170,8 @@ class OriginCreate():
                     "_id": entity_id,
                     "show_code": " ",
                     "show_name": name,
-                    "structure":{"sequences":{},"assets":{'characters':{}, 'environments':{}, 'props':{}}},
-                    "show_defaults":{"asset_definition":{},
+                    "structure":{"sequences":{},"assets":{'characters':[], 'environments':[], 'props':[]}},
+                    "show_defaults":{"asset_definition":otmp.entry_definition("build"),
                                      "shots_definition":otmp.entry_definition("shot"),
                                      "characters_tasks":otmp.tasks_schema("character"),
                                      "props_tasks":otmp.tasks_schema("prop"),
@@ -75,67 +185,179 @@ class OriginCreate():
                 }
             )
             print ("{} show created!".format(name))
-        except Exception:
-            print ("{} Entry already exists! Nothing created!".format(name))
+        except Exception as e:
+            print ("{} Error! Nothing created!".format(e))
 
-    def db_branch(self, name):
+    def db_branch(self, name, branch_type):
         get_root = OriginEnvar.show_name
         sel_id = OriginId.create_id("root", get_root)
+        collection_anchor = OriginId.create_id("anchor", name)
         insert_entry = "structure" + "." + name
-        self.db.show.update_one({"_id":sel_id},{"$set": {insert_entry: {}}})
-        print ("{} show_branch created".format(name))
-
+        self.db[name].insert_one({"_id":collection_anchor})
+        self.db.show.update_one({"_id":sel_id},{"$set": {insert_entry: {"type":branch_type}}})
+        print ("{} Origin Branch created!".format(name))
         return name
 
-    def db_category(self, name):
-        get_root = OriginEnvar.show_name
-        get_branch = OriginEnvar.branch_name
-        sel_id = OriginId.create_id("root", get_root)
-        insert_entry = OriginDbPath.origin_path("structure", get_branch, name)
-        self.db.show.update_one({"_id": sel_id}, {"$set": {insert_entry: {}}})
-        print("{} category created".format(name))
-
+    def db_category(self, name, tasks_type):
+        root_id = OriginDbPath().db_show_path()
+        insert_entry = OriginDbPath.origin_path("structure", OriginEnvar.branch_name, name)
+        insert_tasks_definition = OriginDbPath.origin_path("show_defaults", (name + "_tasks"))
+        insert_definition = OriginDbPath.origin_path("show_defaults", (name + "_definition"))
+        self.db.show.update_one({"_id": root_id}, {"$set": {insert_entry: []}})
+        self.db.show.update_one({"_id": root_id}, {"$set": {insert_tasks_definition: otmp.tasks_schema(tasks_type)}})
+        self.db.show.update_one({"_id": root_id}, {"$set": {insert_definition: otmp.entry_definition(tasks_type)}})
+        print("{} Origin Category created!".format(name))
         return name
 
-    def db_asset(self, name, asset_type=''):
-        get_root = OriginEnvar.show_name
-        get_branch = OriginEnvar.branch_name
-        get_category = OriginEnvar.category
-        sel_id = OriginId.create_id("root", get_root)
-        insert_entry = OriginDbPath.origin_path("structure", get_branch, get_category, name)
-        self.db.show.update_one({"_id": sel_id}, {"$set": {insert_entry: {}}})
-        print("{} asset created".format(name))
+    def db_asset(self, name):
+        root_id = OriginDbPath.db_show_path()
+        asset_id = OriginDbPath.db_category_path()
+        collection = self.db[OriginEnvar.branch_name]
+        try:
+            collection.insert_one(
+                {
+                    "_id": asset_id,
+                    "show_name": OriginEnvar.show_name,
+                    "entry_name": name,
+                    "type": "asset",
+                    "category": OriginEnvar.category,
+                    "status": " ",
+                    "assignment": {},
+                    "tasks": OriginDefaults().get_show_defaults(OriginDefaults().root_tasks),
+                    "master_bundle": [],
+                    "active": True,
+                    "definition": OriginDefaults().get_show_defaults(OriginDefaults().root_definitions),
+                    "date": xnow.return_date(),
+                    "time": xnow.return_time(),
+                    "owner": getpass.getuser()
+                }
+            )
+            insert_entry = OriginDbPath.origin_path("structure", OriginEnvar.branch_name, OriginEnvar.category)
+            OriginDbRef.add_db_id_reference("show", root_id, insert_entry, asset_id, OriginEnvar.branch_name)
+            print("{} Origin Asset created!".format(name))
 
-        asset_id = OriginId.create_id(get_root, get_branch, get_category, name)
-        self.db.assets.insert_one(
-            {
-                "_id": asset_id,
-                "show_name": get_root,
-                "entry_name": name,
-                "type": "asset",
-                "category": get_category,
-                "status": " ",
-                "assignment": {},
-                "tasks": otmpq.get_show_defaults(get_root, get_category, "tasks"),
-                "master_bundle": [],
-                "active": True,
-                "definition": xvalid.DEFAULT_ASSET_DEFINITION,
-                "date": xnow.return_date(),
-                "time": xnow.return_time(),
-                "owner": getpass.getuser()
-            }
-        )
+        except Exception as e:
+            print ("{} Error! Nothing Created!".format(e))
 
-
-
-    def set_type(self):
-        pass
-
+    def create_task(self, name):
+        asset_id = OriginDbPath().db_entry_path()
+        cursor = self.db[OriginEnvar.branch_name]
+        task_db_path = OriginDbPath.origin_path("tasks", name)
+        tasks_defaults = otmp.task_defaults()
+        cursor.update_one({"_id": asset_id},{"$set": {task_db_path: tasks_defaults}})
+        print("{} Origin Asset Task created!".format(name))
+        return name
 
 class OriginQuery():
+    def db_query(db_branch, item, **anchor):
+        db = xcon.server.xchange
+        data = []
+        cursor = db[db_branch]
+        results = cursor.find(anchor, {"_id": 0, item: 1})
+        for result in results:
+            for k, v in result.items():
+                data.append(v)
+        return data
+
     pass
 
 class OriginUpdate():
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+    def task_imports_from(self, imports_from=[]):
+        for each in imports_from:
+            cursor = self.db[OriginEnvar.branch_name]
+            task_imports_from_address = OriginDbPath.origin_path("tasks", OriginEnvar.task_name, "imports_from", each)
+            asset_id = OriginDbPath().db_task_path()
+
+            cursor.update_one({"_id": asset_id},{"$set": {task_imports_from_address: {}}})
+            print("{} task added as import_source".format(each))
+
+    def update_task_pub_slot(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+        for each in pub_slot:
+            db = xcon.server.xchange
+            cursor = db[branch_category]
+            taskLinking_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + each
+            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                          {"$set": {taskLinking_path: {}}})
+            print("{} added as pub_slot".format(each))
+
+    def update_task_pub_used_by(show_name, branch_category, parent_category, entry_name, task_name, pub_slot, used_by,
+                                remove_action=False):
+        db = xcon.server.xchange
+        cursor = db[branch_category]
+
+        pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "used_by"
+        existing_data = cursor.find_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                                        {'_id': 0, pub_slot_path: 1})
+        existing_assignment = existing_data['tasks'][task_name]['pub_slots'][pub_slot]['used_by']
+        if not remove_action:
+            if used_by not in existing_assignment:
+                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                                  {"$push": {pub_slot_path: used_by}})
+        else:
+            if used_by in existing_assignment:
+                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                                  {"$pull": {pub_slot_path: used_by}})
+
+    def update_task_pub_slot_dict(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+        for each in pub_slot:
+            get_slot_name = (list(each.keys()))
+            get_slot_param = (list(each.values()))
+            db = xcon.server.xchange
+            cursor = db[branch_category]
+            pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + get_slot_name[0]
+            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                          {"$set": {pub_slot_path: get_slot_param[0]}})
+        print("Publish Slot added succesfully!")
+
+    def update_task_status(show_name, branch_category, parent_category, entry_name, task_name, task_status):
+        # create/connect to show database
+        db = xcon.server.xchange
+        db_collection = db[branch_category]
+        db_address = "tasks" + "." + task_name + "." + "status"
+        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                             {'$set': {db_address: task_status}})
+
+    def update_task_is_active(show_name, branch_category, parent_category, entry_name, task_name, is_active):
+        # create/connect to show database
+        db = xcon.server.xchange
+        db_collection = db[branch_category]
+        db_address = "tasks" + "." + task_name + "." + "active"
+        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                             {'$set': {db_address: is_active}})
+
+    def update_task_user(show_name, branch_category, parent_category, entry_name, task_name, artist_name):
+        asset_categories = xvalid.VALID_ASSETS_CATEGORIES
+        shot_categories = xvalid.VALID_SHOTS_CATEGORIES
+        if branch_category not in (asset_categories + shot_categories):
+            print("update_task_user")
+            print("{} category is not valid. Please enter one of these {}".format(branch_category,
+                                                                                  (asset_categories + shot_categories)))
+        else:
+            # create/connect to show database
+            db = xcon.server.xchange
+            db_collection = db[branch_category]
+            db_address = "tasks" + "." + task_name + "." + "artist"
+            db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                                 {'$set': {db_address: artist_name}})
+
+    def update_asset_category(show_name, asset_name, asset_category):
+        # create/connect to show database
+        db = xcon.server.xchange
+        db.assets.update({"show_name": show_name, "entry_name": asset_name},
+                         {'$set': {"category": asset_category}})
+        db.show.update({"show_name": show_name, "structure.assets.entry_name": asset_name},
+                       {"$set": {"assets.category": asset_category}})
+
+    def update_entry_definition(show_name, branch_category, parent_category, entry_name, definition):
+        db = xcon.server.xchange
+        cursor = db[branch_category]
+        cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+                      {"$set": {"definition": definition}})
+
+        print("{} definition Updated!".format(entry_name))
     pass
 
 class OriginPublish():
@@ -157,40 +379,40 @@ class OriginPublish():
 
     #DEPRICATE THIS
     ######
-    def db_content_summary(show_name, object_type):
-        """Returns the content of the assets or the shots, paired with the parent category/sequence.
-        To be used to create arrays of dictionaries to be queried for the existence of an item."""
-        valid_object_types = ['assets','shots','sequences','show', 'publishes']
-        db = xcon.server.xchange
-        items_in_collection = []
-        if object_type not in valid_object_types:
-            print ("Invalid category. Try one of these {}" .format(valid_object_types))
-
-        elif object_type == "show":
-            cursor = db.show
-            items = cursor.find({}, {"_id": 0, "show_name":1})
-            for item in items:
-                items_in_collection.append(item)
-
-        elif object_type == "assets":
-            cursor = db.assets
-            items = cursor.find({"show_name":show_name}, {"_id": 0, "entry_name": 1, "category":1, "show_name":1})
-            for item in items:
-                items_in_collection.append(item)
-
-        elif object_type == "sequences":
-            cursor = db.sequences
-            items = cursor.find({"show_name":show_name}, {"_id": 0, "entry_name": 1, "show_name":show_name})
-            for item in items:
-                items_in_collection.append(item)
-
-        elif object_type == "publishes":
-            cursor = db.publishes
-            items = cursor.find({"show_name":show_name}, {"_id": 0, "show_name":1, "entity_name":1, "published_by":1, "version":1, "category":1})
-            for item in items:
-                items_in_collection.append(item)
-
-        return items_in_collection
+    # def db_content_summary(show_name, object_type):
+    #     """Returns the content of the assets or the shots, paired with the parent category/sequence.
+    #     To be used to create arrays of dictionaries to be queried for the existence of an item."""
+    #     valid_object_types = ['assets','shots','sequences','show', 'publishes']
+    #     db = xcon.server.xchange
+    #     items_in_collection = []
+    #     if object_type not in valid_object_types:
+    #         print ("Invalid category. Try one of these {}" .format(valid_object_types))
+    #
+    #     elif object_type == "show":
+    #         cursor = db.show
+    #         items = cursor.find({}, {"_id": 0, "show_name":1})
+    #         for item in items:
+    #             items_in_collection.append(item)
+    #
+    #     elif object_type == "assets":
+    #         cursor = db.assets
+    #         items = cursor.find({"show_name":show_name}, {"_id": 0, "entry_name": 1, "category":1, "show_name":1})
+    #         for item in items:
+    #             items_in_collection.append(item)
+    #
+    #     elif object_type == "sequences":
+    #         cursor = db.sequences
+    #         items = cursor.find({"show_name":show_name}, {"_id": 0, "entry_name": 1, "show_name":show_name})
+    #         for item in items:
+    #             items_in_collection.append(item)
+    #
+    #     elif object_type == "publishes":
+    #         cursor = db.publishes
+    #         items = cursor.find({"show_name":show_name}, {"_id": 0, "show_name":1, "entity_name":1, "published_by":1, "version":1, "category":1})
+    #         for item in items:
+    #             items_in_collection.append(item)
+    #
+    #     return items_in_collection
     ######
 
     ######
@@ -224,138 +446,138 @@ class OriginPublish():
         )
         print("{} show created!".format(root_type))
 
-    def define_branches():
-        pass
+    # def define_branches():
+    #     pass
+    #
+    # def define_categories():
+    #     pass
+    #
+    # def define_tasks_schemas():
+    #     pass
+    #
+    # def define_chains():
+    #     pass
+    #
+    # def define_db_hierachy():
+    #     pass
 
-    def define_categories():
-        pass
+    # def create_show(show_name, code_name, show_type):
+    #     # create/connect to show database
+    #     # TODO, need checking if show already exists, if True then halt
+    #     get_items = db_content_summary(show_name, "show")
+    #     search_combo = {"show_name": show_name}
+    #     if search_combo in get_items:
+    #         print ("{}} show already exists!".format(show_name))
+    #     else:
+    #         db = xcon.server.xchange
+    #         # Create a collection that contains all shows with their specifications
+    #         db.show.insert(
+    #             {
+    #                 "show_code": code_name,
+    #                 "show_name": show_name,
+    #                 "structure":{"sequences":{},"assets":{'characters':{}, 'environments':{}, 'props':{}}},
+    #                 "show_defaults":{"asset_definition":{},
+    #                                  "shots_definition":otmp.entry_definition("shot"),
+    #                                  "characters_tasks":otmp.tasks_schema("character"),
+    #                                  "props_tasks":otmp.tasks_schema("prop"),
+    #                                  "environments_tasks":otmp.tasks_schema("environment"),
+    #                                  "shots_tasks":otmp.tasks_schema("shot")},
+    #                 "active": True,
+    #                 "date": xnow.return_date(),
+    #                 "time": xnow.return_time(),
+    #                 "owner":getpass.getuser(),
+    #                 "show_type":show_type
+    #             }
+    #         )
+    #         print ("{} show created!".format(show_name))
 
-    def define_tasks_schemas():
-        pass
+    # def create_show_branch(show_name, branch_name):
+    #     db = xcon.server.xchange
+    #     # update "show" collection for easy navigation
+    #     cursor = db[branch_name]
+    #     cursor.insert({})
+    #
+    #     insert_entry = "structure" + "." + branch_name
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_entry: {}}})
+    #
+    #     print ("{} show_branch created".format(branch_name))
 
-    def define_chains():
-        pass
+    # def create_sequence(show_name, seq_name):
+    #     db = xcon.server.xchange
+    #     insert_entry = "structure" + "." + "sequences" + "." + seq_name
+    #     insert_definition = "show_defaults" + "." + (seq_name + "_" + "tasks")
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_entry:{}}})
+    #
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_definition:otmp.tasks_schema("shot")}})
+    #     print ("{} sequence created".format(seq_name))
 
-    def define_db_hierachy():
-        pass
+    # def create_assets_category(show_name, category_name, category_type):
+    #     db = xcon.server.xchange
+    #     insert_entry = "structure" + "." + "assets" + "." + category_name
+    #     insert_definition = "show_defaults" + "." + (category_name + "_" + "tasks")
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_entry:{}}})
+    #
+    #     db.show.update({"show_name": show_name},
+    #                    {"$set": {insert_definition:otmp.tasks_schema(category_type)}})
+    #
+    #     print ("{} asset_category created".format(category_name))
 
-    def create_show(show_name, code_name, show_type):
-        # create/connect to show database
-        # TODO, need checking if show already exists, if True then halt
-        get_items = db_content_summary(show_name, "show")
-        search_combo = {"show_name": show_name}
-        if search_combo in get_items:
-            print ("{}} show already exists!".format(show_name))
-        else:
-            db = xcon.server.xchange
-            # Create a collection that contains all shows with their specifications
-            db.show.insert(
-                {
-                    "show_code": code_name,
-                    "show_name": show_name,
-                    "structure":{"sequences":{},"assets":{'characters':{}, 'environments':{}, 'props':{}}},
-                    "show_defaults":{"asset_definition":{},
-                                     "shots_definition":otmp.entry_definition("shot"),
-                                     "characters_tasks":otmp.tasks_schema("character"),
-                                     "props_tasks":otmp.tasks_schema("prop"),
-                                     "environments_tasks":otmp.tasks_schema("environment"),
-                                     "shots_tasks":otmp.tasks_schema("shot")},
-                    "active": True,
-                    "date": xnow.return_date(),
-                    "time": xnow.return_time(),
-                    "owner":getpass.getuser(),
-                    "show_type":show_type
-                }
-            )
-            print ("{} show created!".format(show_name))
+    # def create_shot(show_name, category, entry_name, status ='NOT-STARTED', definition = xvalid.VALID_SHOTS_TYPES):
+    #
+    #     db = xcon.server.xchange
+    #     db.sequences.insert({
+    #                     "show_name": show_name,
+    #                     "entry_name": entry_name,
+    #                     "type": "shot",
+    #                     "category":category,
+    #                     "status": status,
+    #                     "content":[],
+    #                     "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
+    #                     "master_bundle": {},
+    #                     "active": True,
+    #                     "definition":otmpq.get_show_defaults(show_name,"shots","definition"),
+    #                     "date": xnow.return_date(),
+    #                     "time": xnow.return_time(),
+    #                     "owner": getpass.getuser()
+    #     }
+    #     )
+    #
+    #     insert_entry = "structure" + "." + "sequences" + "." + category + "." + entry_name
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_entry:{}}})
+    #
+    #     print ("{} Shot Created!".format(entry_name))
 
-    def create_show_branch(show_name, branch_name):
-        db = xcon.server.xchange
-        # update "show" collection for easy navigation
-        cursor = db[branch_name]
-        cursor.insert({})
-
-        insert_entry = "structure" + "." + branch_name
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_entry: {}}})
-
-        print ("{} show_branch created".format(branch_name))
-
-    def create_sequence(show_name, seq_name):
-        db = xcon.server.xchange
-        insert_entry = "structure" + "." + "sequences" + "." + seq_name
-        insert_definition = "show_defaults" + "." + (seq_name + "_" + "tasks")
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_entry:{}}})
-
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_definition:otmp.tasks_schema("shot")}})
-        print ("{} sequence created".format(seq_name))
-
-    def create_assets_category(show_name, category_name, category_type):
-        db = xcon.server.xchange
-        insert_entry = "structure" + "." + "assets" + "." + category_name
-        insert_definition = "show_defaults" + "." + (category_name + "_" + "tasks")
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_entry:{}}})
-
-        db.show.update({"show_name": show_name},
-                       {"$set": {insert_definition:otmp.tasks_schema(category_type)}})
-
-        print ("{} asset_category created".format(category_name))
-
-    def create_shot(show_name, category, entry_name, status ='NOT-STARTED', definition = xvalid.VALID_SHOTS_TYPES):
-
-        db = xcon.server.xchange
-        db.sequences.insert({
-                        "show_name": show_name,
-                        "entry_name": entry_name,
-                        "type": "shot",
-                        "category":category,
-                        "status": status,
-                        "content":[],
-                        "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
-                        "master_bundle": {},
-                        "active": True,
-                        "definition":otmpq.get_show_defaults(show_name,"shots","definition"),
-                        "date": xnow.return_date(),
-                        "time": xnow.return_time(),
-                        "owner": getpass.getuser()
-        }
-        )
-
-        insert_entry = "structure" + "." + "sequences" + "." + category + "." + entry_name
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_entry:{}}})
-
-        print ("{} Shot Created!".format(entry_name))
-
-    def create_asset(show_name, category, entry_name, status ='NOT-STARTED', definition = xvalid.DEFAULT_ASSET_DEFINITION):
-        db = xcon.server.xchange
-        db.assets.insert(
-            {
-                "show_name": show_name,
-                "entry_name": entry_name,
-                "type": "asset",
-                "category": category,
-                "status": status,
-                "assignment": {},
-                "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
-                "master_bundle":[],
-                "active": True,
-                "definition": definition,
-                "date": xnow.return_date(),
-                "time": xnow.return_time(),
-                "owner": getpass.getuser()
-            }
-        )
-
-        insert_entry = "structure" + "." + "assets" + "." + category + "." + entry_name
-
-        db.show.update({"show_name": show_name},
-                            {"$set": {insert_entry: {}}})
-
-        print ("{} Asset Created!".format(entry_name))
+    # def create_asset(show_name, category, entry_name, status ='NOT-STARTED', definition = xvalid.DEFAULT_ASSET_DEFINITION):
+    #     db = xcon.server.xchange
+    #     db.assets.insert(
+    #         {
+    #             "show_name": show_name,
+    #             "entry_name": entry_name,
+    #             "type": "asset",
+    #             "category": category,
+    #             "status": status,
+    #             "assignment": {},
+    #             "tasks": otmpq.get_show_defaults(show_name,category,"tasks"),
+    #             "master_bundle":[],
+    #             "active": True,
+    #             "definition": definition,
+    #             "date": xnow.return_date(),
+    #             "time": xnow.return_time(),
+    #             "owner": getpass.getuser()
+    #         }
+    #     )
+    #
+    #     insert_entry = "structure" + "." + "assets" + "." + category + "." + entry_name
+    #
+    #     db.show.update({"show_name": show_name},
+    #                         {"$set": {insert_entry: {}}})
+    #
+    #     print ("{} Asset Created!".format(entry_name))
 
     def create_task(show_name, branch_category, parent_category, entry_name, task_name):
         db = xcon.server.xchange
@@ -1475,23 +1697,24 @@ class OriginPublish():
 if __name__=="__main__":
     from origin_data_base import OriginEnvar
 
-    OriginEnvar.show_name = "JUJU"
-    OriginEnvar.branch_name = "new_new_branch"
-    OriginEnvar.category = "TST"
-    OriginEnvar.entry_name = "0100"
-    OriginEnvar.task_name = "light_rend"
+    OriginEnvar.show_name = "Test"
+    OriginEnvar.branch_name = "origin_library"
+    OriginEnvar.category = "airplanes"
+    OriginEnvar.entry_name = "707"
+    # OriginEnvar.task_name = "light_rend"
+
 
 
     ocreate = OriginCreate()
-    # ocreate.db_project(name="JUJU")
-    ocreate.db_branch(name="new_new_branch")
-    ocreate.db_category(name="LOLO")
-    ocreate.db_asset(name="hulky")
+    # ocreate.db_project(name="Test")
+    # ocreate.db_branch(name="origin_library", branch_type=OriginBranchTypes().library)
+    # ocreate.db_category(name="airplanes", tasks_type=OriginTasksTypes().props)
+    # ocreate.db_asset(name="707")
+    ocreate.create_task(name="another_task")
+
 
     # OriginCreate.Asset().at_path()
     # print (ocreate)
-
-
 
     import pprint
     # import os

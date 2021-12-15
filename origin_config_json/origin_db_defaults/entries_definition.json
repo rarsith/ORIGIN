@@ -17,5 +17,29 @@
       "res_x": "from plate",
       "res_y": "from plate"
   }
+  },
+  "build": {
+    "definition": {
+      "asset_lod": "hero",
+      "assembly": false
+    }
+  },
+  "character": {
+    "definition": {
+      "asset_lod": "hero",
+      "assembly": false
+    }
+  },
+  "prop": {
+    "definition": {
+      "asset_lod": "hero",
+      "assembly": false
+    }
+  },
+  "environment": {
+    "definition": {
+      "asset_lod": "hero",
+      "assembly": false
+    }
   }
 }

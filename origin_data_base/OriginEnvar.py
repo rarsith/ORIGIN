@@ -10,7 +10,6 @@ class OriginEnvar():
     def origin_id(self, origin_id):
         os.environ['ORIGIN_ID'] = origin_id
 
-
     @property
     def show_name(self):
         return os.environ.get('ORIGIN_PROJECT')
@@ -54,8 +53,6 @@ class OriginEnvar():
     def taget_path(self, *args):
         qpath = '.'.join(args)
         return qpath
-
-
 
 if __name__ == "__main__":
     from origin_data_base import xcg_db_connection as xcon
