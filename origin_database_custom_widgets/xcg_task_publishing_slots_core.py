@@ -234,9 +234,9 @@ if __name__ == "__main__":
 
     test_dialog = PublishSlotsWidgetCore()
     test_dialog.show_name = 'Test'
-    test_dialog.branch_name = 'assets'
-    test_dialog.category_name = 'characters'
-    test_dialog.entry_name = 'hulkGreen'
+    test_dialog.branch_name = 'origin_library'
+    test_dialog.category_name = 'airplanes'
+    test_dialog.entry_name = '707'
     test_dialog.task_name = 'modeling'
     test_dialog.populate_main_widget()
     test_dialog.show()

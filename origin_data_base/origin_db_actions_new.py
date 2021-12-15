@@ -112,6 +112,18 @@ class OriginId():
             id_elements.append(elem)
         return str(".".join(id_elements))
 
+    @classmethod
+    def db_show_id(cls):
+        return cls.create_id("root",OriginEnvar.show_name)
+
+    @classmethod
+    def db_entry_id(cls):
+        return cls.create_id(OriginEnvar.show_name,
+                              OriginEnvar.branch_name,
+                              OriginEnvar.category,
+                              OriginEnvar.entry_name)
+
+
 class OriginDbPath():
 
     @classmethod
@@ -121,35 +133,69 @@ class OriginDbPath():
             id_elements.append(elem)
         return str(".".join(id_elements))
 
-    def db_show_path(self):
-        return self.origin_path("root",OriginEnvar.show_name)
-
-    def db_branch_path(self):
-        return self.origin_path(OriginEnvar.show_name,
+    @classmethod
+    def db_branch_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
                                 OriginEnvar.branch_name
                                 )
 
-    def db_category_path(self):
-        return self.origin_path(OriginEnvar.show_name,
+    @classmethod
+    def db_category_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
                                 OriginEnvar.branch_name,
                                 OriginEnvar.category
                                 )
 
-    def db_entry_path(self):
-        return self.origin_path(OriginEnvar.show_name,
+    @classmethod
+    def db_entry_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
                                 OriginEnvar.branch_name,
                                 OriginEnvar.category,
                                 OriginEnvar.entry_name)
 
-    def db_task_path(self):
-        return self.origin_path(OriginEnvar.show_name,
-                                OriginEnvar.branch_name,
-                                OriginEnvar.category,
-                                OriginEnvar.entry_name,
-                                OriginEnvar.task_name)
+    @classmethod
+    def db_task_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
+                                        OriginEnvar.branch_name,
+                                        OriginEnvar.category,
+                                        OriginEnvar.entry_name,
+                                        "tasks")
 
-    def db_show_structure_path(self):
-        return self.origin_path("structure", OriginEnvar.branch_name)
+    @classmethod
+    def db_task_imp_from(cls):
+        return cls.origin_path("tasks", OriginEnvar.task_name, 'imports_from')
+
+    @classmethod
+    def db_task_pub(cls):
+        return cls.origin_path("tasks", OriginEnvar.task_name,'pub_slots')
+
+    @classmethod
+    def db_task_pub_used_by(cls):
+        return cls.origin_path("tasks", OriginEnvar.task_name, 'pub_slots')
+
+    @classmethod
+    def db_asset_definition_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
+                               OriginEnvar.branch_name,
+                               OriginEnvar.category,
+                               OriginEnvar.entry_name,
+                               "definition")
+
+    @classmethod
+    def db_asset_master_bundle_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
+                               OriginEnvar.branch_name,
+                               OriginEnvar.category,
+                               OriginEnvar.entry_name,
+                               "master_bundle")
+
+    @classmethod
+    def db_asset_assignment_path(cls):
+        return cls.origin_path(OriginEnvar.show_name,
+                               OriginEnvar.branch_name,
+                               OriginEnvar.category,
+                               OriginEnvar.entry_name,
+                               "assignment")
 
 
 class OriginDbRef():
@@ -265,83 +311,65 @@ class OriginUpdate():
     def __init__(self):
         self.db = xcon.server.xchange
 
+    def origin_update(self, entity_id, db_path, data=[]):
+        cursor = self.db[OriginEnvar.branch_name]
+        cursor.update_one({"_id": entity_id}, {"$set": {db_path:data}})
+
     def task_imports_from(self, imports_from=[]):
         for each in imports_from:
-            cursor = self.db[OriginEnvar.branch_name]
-            task_imports_from_address = OriginDbPath.origin_path("tasks", OriginEnvar.task_name, "imports_from", each)
-            asset_id = OriginDbPath().db_task_path()
-
-            cursor.update_one({"_id": asset_id},{"$set": {task_imports_from_address: {}}})
+            task_imports_from_address = OriginDbPath.origin_path(OriginDbPath.db_task_imp_from(), each)
+            asset_id = OriginId.db_entry_id()
+            self.origin_update(asset_id, task_imports_from_address)
             print("{} task added as import_source".format(each))
 
-    def update_task_pub_slot(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+    def update_task_pub_slot(self, pub_slot=[]):
         for each in pub_slot:
-            db = xcon.server.xchange
-            cursor = db[branch_category]
-            taskLinking_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + each
-            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                          {"$set": {taskLinking_path: {}}})
+            task_imports_from_address = OriginDbPath.origin_path(OriginDbPath.db_task_pub(), each)
+            asset_id = OriginId.db_entry_id()
+            self.origin_update(asset_id, task_imports_from_address)
             print("{} added as pub_slot".format(each))
 
-    def update_task_pub_used_by(show_name, branch_category, parent_category, entry_name, task_name, pub_slot, used_by,
-                                remove_action=False):
-        db = xcon.server.xchange
-        cursor = db[branch_category]
+    def update_task_pub_used_by(self, pub_slot, used_by, remove_action=False):
+        cursor = self.db[OriginEnvar.branch_name]
+        pub_slot_path = OriginDbPath.origin_path(OriginDbPath().db_task_pub(), pub_slot,"used_by")
+        asset_id = OriginId.db_entry_id()
 
-        pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "used_by"
-        existing_data = cursor.find_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                        {'_id': 0, pub_slot_path: 1})
-        existing_assignment = existing_data['tasks'][task_name]['pub_slots'][pub_slot]['used_by']
+        existing_data = cursor.find_one({"_id": asset_id}, {'_id': 0, pub_slot_path: 1})
+        existing_assignment = existing_data['tasks'][OriginEnvar.task_name]['pub_slots'][pub_slot]['used_by']
         if not remove_action:
             if used_by not in existing_assignment:
-                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                  {"$push": {pub_slot_path: used_by}})
+                cursor.update_one({"_id": asset_id},{"$push": {pub_slot_path: used_by}})
         else:
             if used_by in existing_assignment:
-                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                  {"$pull": {pub_slot_path: used_by}})
+                cursor.update_one({"_id": asset_id},{"$pull": {pub_slot_path: used_by}})
 
-    def update_task_pub_slot_dict(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+    def update_task_pub_slot_dict(self, pub_slot=[]):
+        asset_id = OriginId.db_entry_id()
         for each in pub_slot:
             get_slot_name = (list(each.keys()))
             get_slot_param = (list(each.values()))
-            db = xcon.server.xchange
-            cursor = db[branch_category]
-            pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + get_slot_name[0]
-            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                          {"$set": {pub_slot_path: get_slot_param[0]}})
+            pub_slot_path = OriginDbPath.origin_path(OriginDbPath.db_task_pub(), get_slot_name[0])
+            print(pub_slot_path)
+            self.origin_update(asset_id, pub_slot_path, get_slot_param[0])
         print("Publish Slot added succesfully!")
 
-    def update_task_status(show_name, branch_category, parent_category, entry_name, task_name, task_status):
-        # create/connect to show database
-        db = xcon.server.xchange
-        db_collection = db[branch_category]
-        db_address = "tasks" + "." + task_name + "." + "status"
-        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                             {'$set': {db_address: task_status}})
+    def update_task_status(self, task_status):
+        asset_id = OriginDbPath().db_entry_path()
+        db_collection = self.db[OriginEnvar.branch_name]
+        db_address = OriginDbPath.origin_path(OriginDbPath.db_task_path(),"status")
+        db_collection.update_one({"_id": asset_id}, {'$set': {db_address: task_status}})
 
-    def update_task_is_active(show_name, branch_category, parent_category, entry_name, task_name, is_active):
-        # create/connect to show database
-        db = xcon.server.xchange
-        db_collection = db[branch_category]
-        db_address = "tasks" + "." + task_name + "." + "active"
-        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                             {'$set': {db_address: is_active}})
+    def update_task_is_active(self, is_active=True):
+        asset_id = OriginDbPath().db_entry_path()
+        db_collection = self.db[OriginEnvar.branch_name]
+        db_address = OriginDbPath.origin_path(OriginDbPath.db_task_path(), "active")
+        db_collection.update_one({"_id": asset_id}, {'$set': {db_address: is_active}})
 
-    def update_task_user(show_name, branch_category, parent_category, entry_name, task_name, artist_name):
-        asset_categories = xvalid.VALID_ASSETS_CATEGORIES
-        shot_categories = xvalid.VALID_SHOTS_CATEGORIES
-        if branch_category not in (asset_categories + shot_categories):
-            print("update_task_user")
-            print("{} category is not valid. Please enter one of these {}".format(branch_category,
-                                                                                  (asset_categories + shot_categories)))
-        else:
-            # create/connect to show database
-            db = xcon.server.xchange
-            db_collection = db[branch_category]
-            db_address = "tasks" + "." + task_name + "." + "artist"
-            db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                 {'$set': {db_address: artist_name}})
+    def update_task_user(self, artist_name):
+        asset_id = OriginDbPath().db_entry_path()
+        db_collection = self.db[OriginEnvar.branch_name]
+        db_address = OriginDbPath.origin_path(OriginDbPath.db_task_path(), "artist")
+        db_collection.update_one({"_id": asset_id}, {'$set': {db_address: artist_name}})
 
     def update_asset_category(show_name, asset_name, asset_category):
         # create/connect to show database
@@ -1701,8 +1729,19 @@ if __name__=="__main__":
     OriginEnvar.branch_name = "origin_library"
     OriginEnvar.category = "airplanes"
     OriginEnvar.entry_name = "707"
-    # OriginEnvar.task_name = "light_rend"
+    OriginEnvar.task_name = "modeling"
 
+    c = OriginId.db_show_id()
+    print(c)
+
+    db_paths = OriginDbPath.db_task_imp_from()
+    print(db_paths)
+
+    db_update = OriginUpdate()
+    db_update.task_imports_from(['testCCC','testB','testBBBBB'])
+    db_update.update_task_is_active(False)
+    db_update.update_task_pub_slot(['slot1', 'slot2', 'slot3'])
+    db_update.update_task_pub_slot_dict([{"proj":{}}])
 
 
     ocreate = OriginCreate()
@@ -1710,7 +1749,7 @@ if __name__=="__main__":
     # ocreate.db_branch(name="origin_library", branch_type=OriginBranchTypes().library)
     # ocreate.db_category(name="airplanes", tasks_type=OriginTasksTypes().props)
     # ocreate.db_asset(name="707")
-    ocreate.create_task(name="another_task")
+    # ocreate.create_task(name="another_task")
 
 
     # OriginCreate.Asset().at_path()

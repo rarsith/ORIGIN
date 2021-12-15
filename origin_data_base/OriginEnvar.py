@@ -50,6 +50,22 @@ class OriginEnvar():
     def task_name(self, task):
         os.environ['ORIGIN_ENTITY_TASK'] = task
 
+    @property
+    def task_imports_from(self):
+        return os.environ.get('ORIGIN_TASK_IMP')
+
+    @task_imports_from.setter
+    def task_imports_from(self, imp_from):
+        os.environ['ORIGIN_TASK_IMP'] = imp_from
+
+    @property
+    def task_pub(self):
+        return os.environ.get('ORIGIN_TASK_PUB')
+
+    @task_pub.setter
+    def task_pub(self, pub):
+        os.environ['ORIGIN_TASK_PUB'] = pub
+
     def taget_path(self, *args):
         qpath = '.'.join(args)
         return qpath
@@ -59,10 +75,12 @@ if __name__ == "__main__":
 
     g = OriginEnvar()
     g.show_name = 'Test'
-    g.branch_name = 'assets'
-    g.category = 'characters'
-    g.entry_name = 'hulk'
+    g.branch_name = 'origin_library'
+    g.category = 'airplanes'
+    g.entry_name = '707'
     g.task_name = 'modeling'
+    g.task_imports_from = "concept"
+    g.task_imports_pub = "render_geo"
 
     class OQuery():
         def select_db_entity(self):
@@ -79,6 +97,6 @@ if __name__ == "__main__":
 
 
     x = OQuery()
-    y = x.q_entity_attr("master_bundle")
+    y = x.q_entity_attr("tasks")
     print (y)
 
