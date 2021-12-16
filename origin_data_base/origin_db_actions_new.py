@@ -91,6 +91,10 @@ class OriginDefaults():
     def root_tasks(self):
         return "tasks"
 
+    @property
+    def tasks_pub_slot(self):
+        return "pub_slot"
+
     def get_show_defaults(self, default_type):
         root_id = OriginId.create_id("root", OriginEnvar.show_name)
         query_path = "show_defaults" + "." + (OriginEnvar.category + "_" + default_type)
@@ -122,7 +126,6 @@ class OriginId():
                               OriginEnvar.branch_name,
                               OriginEnvar.category,
                               OriginEnvar.entry_name)
-
 
 class OriginDbPath():
 
@@ -197,7 +200,6 @@ class OriginDbPath():
                                OriginEnvar.entry_name,
                                "assignment")
 
-
 class OriginDbRef():
     @classmethod
     def add_db_id_reference(cls, collection, parent_doc_id, destination_slot, id_to_add, from_collection):
@@ -235,17 +237,16 @@ class OriginCreate():
             print ("{} Error! Nothing created!".format(e))
 
     def db_branch(self, name, branch_type):
-        get_root = OriginEnvar.show_name
-        sel_id = OriginId.create_id("root", get_root)
+        root_id = OriginId().db_show_id()
         collection_anchor = OriginId.create_id("anchor", name)
         insert_entry = "structure" + "." + name
         self.db[name].insert_one({"_id":collection_anchor})
-        self.db.show.update_one({"_id":sel_id},{"$set": {insert_entry: {"type":branch_type}}})
+        self.db.show.update_one({"_id":root_id},{"$set": {insert_entry: {"type":branch_type}}})
         print ("{} Origin Branch created!".format(name))
         return name
 
     def db_category(self, name, tasks_type):
-        root_id = OriginDbPath().db_show_path()
+        root_id = OriginId().db_show_id()
         insert_entry = OriginDbPath.origin_path("structure", OriginEnvar.branch_name, name)
         insert_tasks_definition = OriginDbPath.origin_path("show_defaults", (name + "_tasks"))
         insert_definition = OriginDbPath.origin_path("show_defaults", (name + "_definition"))
@@ -256,8 +257,8 @@ class OriginCreate():
         return name
 
     def db_asset(self, name):
-        root_id = OriginDbPath.db_show_path()
-        asset_id = OriginDbPath.db_category_path()
+        root_id = OriginId.db_show_id()
+        asset_id = OriginDbPath.origin_path(OriginDbPath.db_category_path(), name)
         collection = self.db[OriginEnvar.branch_name]
         try:
             collection.insert_one(
@@ -285,13 +286,22 @@ class OriginCreate():
         except Exception as e:
             print ("{} Error! Nothing Created!".format(e))
 
-    def create_task(self, name):
+    def asset_task(self, name):
         asset_id = OriginDbPath().db_entry_path()
         cursor = self.db[OriginEnvar.branch_name]
-        task_db_path = OriginDbPath.origin_path("tasks", name)
+        task_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_path(), name)
         tasks_defaults = otmp.task_defaults()
         cursor.update_one({"_id": asset_id},{"$set": {task_db_path: tasks_defaults}})
         print("{} Origin Asset Task created!".format(name))
+        return name
+
+    def task_pub_slot(self, name):
+        asset_id = OriginDbPath().db_entry_path()
+        cursor = self.db[OriginEnvar.branch_name]
+        task_pub_slot_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_pub(), name)
+        tasks_pub_slot_defaults = otmp.tasks_pub_slot_schema()
+        cursor.update_one({"_id": asset_id}, {"$set": {task_pub_slot_db_path: tasks_pub_slot_defaults}})
+        print("{} Task Pub Slot created!".format(name))
         return name
 
 class OriginQuery():
@@ -304,7 +314,6 @@ class OriginQuery():
             for k, v in result.items():
                 data.append(v)
         return data
-
     pass
 
 class OriginUpdate():
@@ -1731,17 +1740,20 @@ if __name__=="__main__":
     OriginEnvar.entry_name = "707"
     OriginEnvar.task_name = "modeling"
 
-    c = OriginId.db_show_id()
-    print(c)
-
-    db_paths = OriginDbPath.db_task_imp_from()
-    print(db_paths)
-
-    db_update = OriginUpdate()
-    db_update.task_imports_from(['testCCC','testB','testBBBBB'])
-    db_update.update_task_is_active(False)
-    db_update.update_task_pub_slot(['slot1', 'slot2', 'slot3'])
-    db_update.update_task_pub_slot_dict([{"proj":{}}])
+    c = OriginCreate()
+    c.task_pub_slot("Test_Slot")
+    #
+    #
+    # c = OriginId.db_show_id()
+    # print(c)
+    # db_paths = OriginDbPath.db_task_imp_from()
+    # print(db_paths)
+    #
+    # db_update = OriginUpdate()
+    # db_update.task_imports_from(['testCCC','testB','testBBBBB'])
+    # db_update.update_task_is_active(False)
+    # db_update.update_task_pub_slot(['slot1', 'slot2', 'slot3'])
+    # db_update.update_task_pub_slot_dict([{"proj":{}}])
 
 
     ocreate = OriginCreate()
