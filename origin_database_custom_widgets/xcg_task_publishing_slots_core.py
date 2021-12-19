@@ -233,7 +233,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
     test_dialog = PublishSlotsWidgetCore()
-    test_dialog.show_name = 'Test'
+    test_dialog.show_name = 'Mofo'
     test_dialog.branch_name = 'origin_library'
     test_dialog.category_name = 'airplanes'
     test_dialog.entry_name = '707'

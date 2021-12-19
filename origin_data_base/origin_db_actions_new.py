@@ -13,7 +13,7 @@ from origin_data_base import OriginEnvar
 
 xnow = OriginDateTime()
 
-class JunkStorage():
+class JunkStorage(object):
     def db_asset_category(self, name, category_type):
         root_id = OriginId.create_id("root", OriginEnvar.show_name)
         insert_entry = OriginDbPath.origin_path("structure", "assets", name)
@@ -32,7 +32,7 @@ class JunkStorage():
         print ("{} sequence created".format(name))
         return name
 
-class OriginTasksTypes():
+class OriginTasksTypes(object):
 
     @property
     def characters(self):
@@ -50,7 +50,7 @@ class OriginTasksTypes():
     def shots(self):
         return 'shot'
 
-class OriginBranchTypes():
+class OriginBranchTypes(object):
     @property
     def build(self):
         return "build"
@@ -67,7 +67,7 @@ class OriginBranchTypes():
     def reference(self):
         return 'ref_asset'
 
-class OriginAssetTypes():
+class OriginAssetTypes(object):
     def __init__(self):
         self.db = xcon.server.xchange
 
@@ -79,7 +79,7 @@ class OriginAssetTypes():
     def shot(cls):
         pass
 
-class OriginDefaults():
+class OriginDefaults(object):
     def __init__(self):
         self.db = xcon.server.xchange
 
@@ -103,7 +103,7 @@ class OriginDefaults():
         for data in category_tasks:
             return data["show_defaults"][(OriginEnvar.category + "_" + default_type)]
 
-class OriginId():
+class OriginId(object):
     """
     Takes a list and joins the elements into a string
     Ex: list = ["element1", "element2"] >>>> result > "element1.element2"
@@ -127,7 +127,23 @@ class OriginId():
                               OriginEnvar.category,
                               OriginEnvar.entry_name)
 
-class OriginDbPath():
+    @classmethod
+    def db_main_pub_id(cls, version):
+        return cls.create_id(OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             version)
+
+    @classmethod
+    def db_slot_pub_id(cls, version):
+        return cls.create_id(OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             version)
+
+class OriginDbPath(object):
 
     @classmethod
     def origin_path(cls, *data):
@@ -158,11 +174,7 @@ class OriginDbPath():
 
     @classmethod
     def db_task_path(cls):
-        return cls.origin_path(OriginEnvar.show_name,
-                                        OriginEnvar.branch_name,
-                                        OriginEnvar.category,
-                                        OriginEnvar.entry_name,
-                                        "tasks")
+        return "tasks"
 
     @classmethod
     def db_task_imp_from(cls):
@@ -178,35 +190,23 @@ class OriginDbPath():
 
     @classmethod
     def db_asset_definition_path(cls):
-        return cls.origin_path(OriginEnvar.show_name,
-                               OriginEnvar.branch_name,
-                               OriginEnvar.category,
-                               OriginEnvar.entry_name,
-                               "definition")
+        return "definition"
 
     @classmethod
     def db_asset_master_bundle_path(cls):
-        return cls.origin_path(OriginEnvar.show_name,
-                               OriginEnvar.branch_name,
-                               OriginEnvar.category,
-                               OriginEnvar.entry_name,
-                               "master_bundle")
+        return "master_bundle"
 
     @classmethod
     def db_asset_assignment_path(cls):
-        return cls.origin_path(OriginEnvar.show_name,
-                               OriginEnvar.branch_name,
-                               OriginEnvar.category,
-                               OriginEnvar.entry_name,
-                               "assignment")
+        return "assignment"
 
-class OriginDbRef():
+class OriginDbRef(object):
     @classmethod
     def add_db_id_reference(cls, collection, parent_doc_id, destination_slot, id_to_add, from_collection):
         db = xcon.server.xchange
         db[collection].update_one({"_id":parent_doc_id}, {"$push":{destination_slot:DBRef(from_collection, id_to_add)}})
 
-class OriginCreate():
+class OriginCreate(object):
     def __init__(self):
         self.db = xcon.server.xchange
 
@@ -304,19 +304,523 @@ class OriginCreate():
         print("{} Task Pub Slot created!".format(name))
         return name
 
-class OriginQuery():
-    def db_query(db_branch, item, **anchor):
-        db = xcon.server.xchange
+class OriginQuery(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+
+    def db_query(self, db_branch, item, **anchor):
         data = []
-        cursor = db[db_branch]
+        cursor = self.db[db_branch]
         results = cursor.find(anchor, {"_id": 0, item: 1})
         for result in results:
             for k, v in result.items():
                 data.append(v)
         return data
-    pass
 
-class OriginUpdate():
+    def get_all_active_shows(self):
+        try:
+            shows_list = []
+            all_shows = self.db.show.find({"active":True}, {'_id':0, 'show_name':1})
+            for each in all_shows:
+                get_values = list(each.values())
+                shows_list.append(get_values[0])
+            return shows_list
+
+        except:
+            pass
+
+    def get_show_base_structure(show_name):
+         try:
+            db = xcon.server.xchange
+            all_assets = db.show.find({"show_name": show_name, "active": True},
+                                           {'_id': 0, 'structure': 1})
+            for each in list(all_assets):
+                return each['structure']
+
+         except:
+            pass
+
+    def get_show_branches_structure(show_name):
+        try:
+            branches_list = []
+            db = xcon.server.xchange
+            all_assets = db.show.find({"show_name": show_name, "active": True},
+                                           {'_id': 0, 'structure': 1})
+            for each in list(all_assets):
+                return list(each['structure'])
+        except:
+            pass
+
+    def get_show_assets_categories(show_name):
+        try:
+            db = xcon.server.xchange
+            all_assets = db.show.find({"show_name": show_name, "active": True},
+                                           {'_id': 0, 'structure.assets': 1})
+            for each in all_assets:
+                return list(each['structure']['assets'].keys())
+
+        except:
+            pass
+
+    def get_all_active_assets(show_name, category):
+        try:
+            assets_list = []
+            db = xcon.server.xchange
+            all_assets = db.assets.find({"show_name": show_name, "category": category, "active": True}, {'_id': 0, 'entry_name': 1})
+            for each in all_assets:
+                assets_list.append(each['entry_name'])
+            return assets_list
+        except:
+            pass
+
+    def get_show_sequences(show_name):
+        try:
+            db = xcon.server.xchange
+            all_assets = db.show.find({"show_name": show_name, "active": True},
+                                           {"_id": 0, "structure.sequences":1})
+            for each in all_assets:
+                return list(each['structure']['sequences'])
+
+        except:
+            pass
+
+    def get_all_active_shots(show_name, category):
+        try:
+            shots_list = []
+            db = xcon.server.xchange
+            all_shots = db.sequences.find({"show_name": show_name, "category": category, "active": True},
+                                        {'_id': 0, 'entry_name': 1})
+            for each in all_shots:
+                shots_list.append(each['entry_name'])
+            return shots_list
+        except:
+            pass
+
+    def get_tasks_content(show_name, branch_category, parent_category, entry_name):
+        try:
+            entry_tasks = []
+            if branch_category == None or parent_category == None:
+                return
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name}, {'_id':0, 'tasks':1})
+                for elements in tasks_list:
+                    for tasks, task_name in elements.items():
+                        entry_tasks.append(list(task_name.keys()))
+
+                return entry_tasks
+        except:
+            pass
+
+    def get_tasks(show_name, branch_category, parent_category, entry_name, active=True):
+        try:
+            entry_tasks = []
+            if branch_category == None or parent_category == None:
+                return
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name}, {'_id':0, 'tasks':1})
+                for elements in tasks_list:
+                    for tasks, task_name in elements.items():
+                        entry_tasks.append(list(task_name.keys()))
+
+                return entry_tasks[0]
+        except:
+            pass
+
+    def get_task_definition(show_name, branch_category, parent_category, entry_name, task_name):
+
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_task_definition")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    entry_task.append(tasks.values()[0].values()[0])
+            return entry_task
+
+        except:
+            pass
+
+    def get_task_pub_slots(show_name, branch_category, parent_category, entry_name, task_name):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+            if branch_category not in show_branches:
+                print ("get_task_pub_slots")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(list(tsk_name[task_name]['pub_slots']))
+            return entry_task[0]
+        except:
+            pass
+
+    def get_pub_slots(show_name, branch_category, parent_category, entry_name, task_name):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+            if branch_category not in show_branches:
+                print ("get_task_pub_slots")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(tsk_name[task_name]['pub_slots'])
+            return entry_task[0]
+        except:
+            pass
+
+    def get_ALL(*args):
+        print (args)
+        # try:
+        #     entry_task = []
+        #     show_branches = xvalid.VALID_SHOW_BRANCHES
+        #     if branch_category not in show_branches:
+        #         print ("get_task_pub_slots")
+        #         print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+        #     else:
+        #         # create/connect to show database
+        #         db = xcon.server.xchange
+        #         task_path = "tasks" + "." + task_name + "." + "pub_slots"
+        #         cursor = db[branch_category]
+        #         tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+        #                                    {'_id': 0, task_path: 1})
+        #         for tasks in tasks_list:
+        #             for tsk, tsk_name in tasks.items():
+        #                 entry_task.append(tsk_name[task_name]['pub_slots'])
+        #     return entry_task[0]
+        # except:
+        #     pass
+
+    def get_pub_type(show_name, branch_category, parent_category, entry_name, task_name, pub_slot):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ('get_pub_type')
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "type"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(tsk_name[task_name]['pub_slots'][pub_slot]['type'])
+            return entry_task
+
+        except:
+            pass
+
+    def get_pub_method(show_name, branch_category, parent_category, entry_name, task_name, pub_slot):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_pub_type")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "method"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(entry_task.append(tsk_name[task_name]['pub_slots'][pub_slot]['method']))
+
+            return entry_task
+
+        except:
+            pass
+
+    def get_pub_used_by(show_name, branch_category, parent_category, entry_name, task_name, pub_slot):
+        try:
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_pub_type")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "used_by"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        return tsk_name[task_name]['pub_slots'][pub_slot]['used_by']
+
+
+        except:
+            pass
+
+    def get_pub_used_by_task(data, task_name):
+        get_pub_slots = []
+        get_slots = list(data.keys())
+        for x  in get_slots:
+            if task_name in data[x]['used_by']:
+                get_pub_slots.append(x)
+        return get_pub_slots
+
+    def get_pub_is_reviewable(show_name, branch_category, parent_category, entry_name, task_name, pub_slot):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_pub_is_reviewable")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "reviewable"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(entry_task.append(tsk_name[task_name]['pub_slots'][pub_slot]['reviewable']))
+
+            return entry_task
+        except:
+            pass
+
+    def get_pub_is_active(show_name, branch_category, parent_category, entry_name, task_name, pub_slot):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_pub_is_active")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "active"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                           {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+
+                    for tsk, tsk_name in tasks.items():
+                        entry_task.append(entry_task.append(tsk_name[task_name]['pub_slots'][pub_slot]['active']))
+
+            return entry_task
+        except:
+            pass
+
+    def get_task_imports_from(show_name, branch_category, parent_category, entry_name, task_name):
+        try:
+            task_imports_from_list = []
+            task_imports_from = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_task_imports_from")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "imports_from"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                         {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    for tsk, tsk_name in tasks.items():
+                        task_imports_from_list.append(list(tsk_name[task_name]['imports_from'].keys()))
+            return task_imports_from_list[0]
+
+
+
+        except:
+            pass
+
+    def get_task_status(show_name, branch_category, parent_category, entry_name, task_name):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_task_status")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "status"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                         {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    entry_task.append(tasks['tasks'][task_name]['status'])
+            return entry_task
+        except:
+            pass
+
+    def get_task_is_active(show_name, branch_category, parent_category, entry_name, task_name):
+        try:
+            entry_task = []
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+
+            if branch_category not in show_branches:
+                print ("get_task_is_active")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                task_path = "tasks" + "." + task_name + "." + "active"
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                         {'_id': 0, task_path: 1})
+                for tasks in tasks_list:
+                    entry_task.append(tasks['tasks'][task_name]['active'])
+            return entry_task
+        except:
+            pass
+
+    def get_task_user():
+        pass
+
+    def get_entry_definition(show_name, branch_category, parent_category, entry_name):
+        try:
+            entry_definition = []
+            if branch_category == None or parent_category == None:
+                return ""
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                cursor = db[branch_category]
+                definitions_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                         {'_id': 0, 'definition': 1})
+                for definitions in definitions_list:
+                    entry_definition.append(definitions['definition'])
+            return entry_definition[0]
+        except:
+            pass
+
+    def get_entry_type(show_name, branch_category, parent_category, entry_name):
+        try:
+            entry_type = []
+            if branch_category == None or parent_category == None:
+                return ""
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                cursor = db[branch_category]
+                read_type = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name}, {'_id': 0, 'type': 1})
+                for definitions in read_type:
+                    entry_type.append(definitions['type'])
+            return entry_type[0]
+        except:
+            pass
+
+    def get_entry_assigned(show_name, branch_category, parent_category, entry_name):
+        try:
+            entry_assignment = []
+
+            show_branches = xvalid.VALID_SHOW_BRANCHES
+            if branch_category not in show_branches:
+                print ("get_entry_assigned")
+                print ("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
+            else:
+                # create/connect to show database
+                db = xcon.server.xchange
+                cursor = db[branch_category]
+                tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                            {'_id': 0, 'assignment': 1})
+                for elements in tasks_list:
+                    for tasks, task_name in elements.iteritems():
+                        entry_assignment.append(task_name.keys())
+
+            return entry_assignment[0]
+        except:
+            pass
+
+    def get_definition_element(show_name, branch_category, parent_category, entry_name, definition_element):
+        try:
+            entry_assignment = []
+            # create/connect to show database
+
+            db = xcon.server.xchange
+            cursor = db[branch_category]
+            tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                        {'_id': 0, 'definition': 1})
+
+            for elements in tasks_list:
+                for tasks, task_name in elements.items():
+                    if tasks != "definition":
+                        return ""
+                    else:
+                        entry_assignment.append(task_name[definition_element])
+            return entry_assignment[0]
+
+        except:
+            return ""
+
+    def get_definition_attributes(show_name, branch_category, parent_category, entry_name):
+        try:
+            attribute_name = []
+            attribute_value = []
+            full_attrib = {}
+            # create/connect to show database
+
+            db = xcon.server.xchange
+            cursor = db[branch_category]
+            tasks_list = cursor.find({"show_name": show_name, "category": parent_category, "entry_name": entry_name},
+                                        {'_id': 0, 'definition': 1})
+
+            for elements in tasks_list:
+                for tasks, task_name in elements.iteritems():
+                    if tasks != "definition":
+                        return ""
+                    else:
+                        attribute_name.append(task_name)
+                        # attribute_value.append(task_name.values())
+
+            # for each in attribute_name:
+            #     full_attrib[each] =
+            #
+            # print full_attrib
+            return attribute_name[0]
+
+        except:
+            return ""
+
+class OriginUpdate(object):
     def __init__(self):
         self.db = xcon.server.xchange
 
@@ -397,22 +901,22 @@ class OriginUpdate():
         print("{} definition Updated!".format(entry_name))
     pass
 
-class OriginPublish():
+class OriginPublish(object):
     pass
 
-    def generate_unique_id():
-        unique_id = str(uuid.uuid4())
-        return unique_id
+    # def generate_unique_id():
+    #     unique_id = str(uuid.uuid4())
+    #     return unique_id
 
-    def db_query(db_branch, item, **anchor):
-        db = xcon.server.xchange
-        data = []
-        cursor = db[db_branch]
-        results = cursor.find(anchor, {"_id": 0, item: 1})
-        for result in results:
-            for k, v in result.items():
-                data.append(v)
-        return data
+    # def db_query(db_branch, item, **anchor):
+    #     db = xcon.server.xchange
+    #     data = []
+    #     cursor = db[db_branch]
+    #     results = cursor.find(anchor, {"_id": 0, item: 1})
+    #     for result in results:
+    #         for k, v in result.items():
+    #             data.append(v)
+    #     return data
 
     #DEPRICATE THIS
     ######
@@ -463,7 +967,7 @@ class OriginPublish():
             sub_branches_list.append(list(each['structure'][branch_name].keys()))
         return sub_branches_list[0]
 
-    def get_sub_branches_content(show_name, branch_name, category_name):
+    def get_sub_branches_content(self, show_name, branch_name, category_name):
         db = xcon.server.xchange
         query_path = "structure" + "." + branch_name + "." + category_name
         all_branches = db.show.find({"show_name": show_name, "active": True},
@@ -616,18 +1120,18 @@ class OriginPublish():
     #
     #     print ("{} Asset Created!".format(entry_name))
 
-    def create_task(show_name, branch_category, parent_category, entry_name, task_name):
-        db = xcon.server.xchange
-        cursor = db[branch_category]
-        shot_task_address = "tasks" + "." + task_name
+    # def create_task(show_name, branch_category, parent_category, entry_name, task_name):
+    #     db = xcon.server.xchange
+    #     cursor = db[branch_category]
+    #     shot_task_address = "tasks" + "." + task_name
+    #
+    #     tasks_defaults = otmp.task_defaults()
+    #
+    #     cursor.update({"show_name": show_name, "entry_name": entry_name, "category":parent_category},
+    #                     {"$set": {shot_task_address: tasks_defaults}})
 
-        tasks_defaults = otmp.task_defaults()
-
-        cursor.update({"show_name": show_name, "entry_name": entry_name, "category":parent_category},
-                        {"$set": {shot_task_address: tasks_defaults}})
-
-    def create_subtask(show_name, entry_category, parent_category, entry_name, task_name, subtask_name):
-        pass
+    # def create_subtask(show_name, entry_category, parent_category, entry_name, task_name, subtask_name):
+    #     pass
     # OMIT FUNC
     def omit_sequence(show_name, entry_name):
         db = xcon.server.xchange
@@ -677,159 +1181,159 @@ class OriginPublish():
     def rem_assets_from_shot(show_name, show_branch, category, entry_name, asset_to_remove):
         pass
     #SET FUNC
-    def update_task_imports_from(show_name, branch_category, parent_category, entry_name, task_name, imports_from=[]):
-        for each in imports_from:
-            db = xcon.server.xchange
-            cursor = db[branch_category]
-            shot_taskLinking_address = "tasks" + "." + task_name + "." + "imports_from" + "." + each
-            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                            {"$set": {shot_taskLinking_address: {}}})
-            print ("{} task added as import_source".format(each))
-
-    def update_task_pub_slot(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
-        for each in pub_slot:
-            db = xcon.server.xchange
-            cursor = db[branch_category]
-            taskLinking_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + each
-            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                          {"$set": {taskLinking_path: {}}})
-            print ("{} added as pub_slot".format(each))
-
-    def update_task_pub_used_by(show_name, branch_category, parent_category, entry_name, task_name, pub_slot, used_by, remove_action=False):
-        db = xcon.server.xchange
-        cursor = db[branch_category]
-
-        pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "used_by"
-        existing_data = cursor.find_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                        {'_id': 0, pub_slot_path: 1})
-        existing_assignment = existing_data['tasks'][task_name]['pub_slots'][pub_slot]['used_by']
-        if not remove_action:
-            if used_by not in existing_assignment:
-                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                              {"$push": {pub_slot_path: used_by}})
-        else:
-            if used_by in existing_assignment:
-                cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                              {"$pull": {pub_slot_path: used_by}})
-
-    def update_task_pub_slot_dict(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
-        for each in pub_slot:
-            get_slot_name = (list(each.keys()))
-            get_slot_param = (list(each.values()))
-            db = xcon.server.xchange
-            cursor = db[branch_category]
-            pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + get_slot_name[0]
-            cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                          {"$set": {pub_slot_path: get_slot_param[0]}})
-        print ("Publish Slot added succesfully!")
-
-    def update_task_status(show_name, branch_category, parent_category, entry_name, task_name, task_status):
-        # create/connect to show database
-        db = xcon.server.xchange
-        db_collection = db[branch_category]
-        db_address = "tasks" + "." + task_name + "." + "status"
-        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                             {'$set': {db_address:task_status}})
-
-    def update_task_is_active(show_name, branch_category, parent_category, entry_name, task_name, is_active):
-        # create/connect to show database
-        db = xcon.server.xchange
-        db_collection = db[branch_category]
-        db_address = "tasks" + "." + task_name + "." + "active"
-        db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                             {'$set': {db_address:is_active}})
-
-    def update_task_user(show_name, branch_category, parent_category, entry_name, task_name, artist_name):
-        asset_categories = xvalid.VALID_ASSETS_CATEGORIES
-        shot_categories = xvalid.VALID_SHOTS_CATEGORIES
-        if branch_category not in (asset_categories + shot_categories):
-            print ("update_task_user")
-            print ("{} category is not valid. Please enter one of these {}".format(branch_category,(asset_categories + shot_categories)))
-        else:
-            # create/connect to show database
-            db = xcon.server.xchange
-            db_collection = db[branch_category]
-            db_address = "tasks" + "." + task_name + "." + "artist"
-            db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                                 {'$set': {db_address: artist_name}})
-
-    def update_asset_category(show_name, asset_name, asset_category):
-        # create/connect to show database
-        db = xcon.server.xchange
-        db.assets.update({"show_name":show_name, "entry_name":asset_name},
-                            {'$set':{"category": asset_category}})
-        db.show.update({"show_name": show_name, "structure.assets.entry_name":asset_name},
-                            {"$set": {"assets.category": asset_category}})
-
-    def update_entry_definition(show_name, branch_category, parent_category, entry_name, definition):
-        db = xcon.server.xchange
-        cursor = db[branch_category]
-        cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
-                      {"$set": {"definition": definition}})
-
-        print ("{} definition Updated!".format(entry_name))
-
-    def add_asset_to_shot02(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
-        asset_categories = xvalid.VALID_ASSETS_CATEGORIES
-
-        if asset_category not in asset_categories:
-            print ("{} not a valid category. Please use one of these %s".format (asset_category, asset_categories))
-
-        else:
-            get_assets = db_content_summary(show_name, "assets")
-            search_combo = {"show_name": show_name, "entry_name": asset_name, "category": asset_category}
-
-            if search_combo not in get_assets:
-                print ("Asset does not exist. Please check your input!")
-
-            else:
-                db = xcon.server.xchange
-                cursor = db.sequences
-                get_assignments_list = []
-                current = cursor.find({'show_name': show_name,'entry_name':shot_name, 'category':seq_name}, {'_id': 0, 'content':1})
-                for i in current:
-                    for keys, values in i.iteritems():
-                        for each in values:
-                            get_assignments_list.append(each[0])
-
-                if asset_name in get_assignments_list:
-                    print ("Asset {} already assigned to {} shot. Please check your input!".format (asset_name, shot_name))
-
-                else:
-                    asset_path = "assignment" + "." + asset_name
-                    db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
-                                    {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
-
-    def add_asset_to_shot(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
-        asset_categories = xvalid.VALID_ASSETS_CATEGORIES
-
-        if asset_category not in asset_categories:
-            print ("{} not a valid category. Please use one of these %s".format (asset_category, asset_categories))
-
-        else:
-            get_assets = db_content_summary(show_name, "assets")
-            search_combo = {"show_name": show_name, "entry_name": asset_name, "category": asset_category}
-
-            if search_combo not in get_assets:
-                print ("Asset does not exist. Please check your input!")
-
-            else:
-                db = xcon.server.xchange
-                cursor = db.sequences
-                get_assignments_list = []
-                current = cursor.find({'show_name': show_name,'entry_name':shot_name, 'category':seq_name}, {'_id': 0, 'content':1})
-                for i in current:
-                    for keys, values in i.iteritems():
-                        for each in values:
-                            get_assignments_list.append(each[0])
-
-                if asset_name in get_assignments_list:
-                    print ("Asset {} already assigned to {} shot. Please check your input!".format (asset_name, shot_name))
-
-                else:
-                    asset_path = "assignment" + "." + asset_name
-                    db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
-                                    {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
+    # def update_task_imports_from(show_name, branch_category, parent_category, entry_name, task_name, imports_from=[]):
+    #     for each in imports_from:
+    #         db = xcon.server.xchange
+    #         cursor = db[branch_category]
+    #         shot_taskLinking_address = "tasks" + "." + task_name + "." + "imports_from" + "." + each
+    #         cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                         {"$set": {shot_taskLinking_address: {}}})
+    #         print ("{} task added as import_source".format(each))
+    #
+    # def update_task_pub_slot(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+    #     for each in pub_slot:
+    #         db = xcon.server.xchange
+    #         cursor = db[branch_category]
+    #         taskLinking_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + each
+    #         cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                       {"$set": {taskLinking_path: {}}})
+    #         print ("{} added as pub_slot".format(each))
+    #
+    # def update_task_pub_used_by(show_name, branch_category, parent_category, entry_name, task_name, pub_slot, used_by, remove_action=False):
+    #     db = xcon.server.xchange
+    #     cursor = db[branch_category]
+    #
+    #     pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + pub_slot + "." + "used_by"
+    #     existing_data = cursor.find_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                                     {'_id': 0, pub_slot_path: 1})
+    #     existing_assignment = existing_data['tasks'][task_name]['pub_slots'][pub_slot]['used_by']
+    #     if not remove_action:
+    #         if used_by not in existing_assignment:
+    #             cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                           {"$push": {pub_slot_path: used_by}})
+    #     else:
+    #         if used_by in existing_assignment:
+    #             cursor.update_one({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                           {"$pull": {pub_slot_path: used_by}})
+    #
+    # def update_task_pub_slot_dict(show_name, branch_category, parent_category, entry_name, task_name, pub_slot=[]):
+    #     for each in pub_slot:
+    #         get_slot_name = (list(each.keys()))
+    #         get_slot_param = (list(each.values()))
+    #         db = xcon.server.xchange
+    #         cursor = db[branch_category]
+    #         pub_slot_path = "tasks" + "." + task_name + "." + "pub_slots" + "." + get_slot_name[0]
+    #         cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                       {"$set": {pub_slot_path: get_slot_param[0]}})
+    #     print ("Publish Slot added succesfully!")
+    #
+    # def update_task_status(show_name, branch_category, parent_category, entry_name, task_name, task_status):
+    #     # create/connect to show database
+    #     db = xcon.server.xchange
+    #     db_collection = db[branch_category]
+    #     db_address = "tasks" + "." + task_name + "." + "status"
+    #     db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                          {'$set': {db_address:task_status}})
+    #
+    # def update_task_is_active(show_name, branch_category, parent_category, entry_name, task_name, is_active):
+    #     # create/connect to show database
+    #     db = xcon.server.xchange
+    #     db_collection = db[branch_category]
+    #     db_address = "tasks" + "." + task_name + "." + "active"
+    #     db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                          {'$set': {db_address:is_active}})
+    #
+    # def update_task_user(show_name, branch_category, parent_category, entry_name, task_name, artist_name):
+    #     asset_categories = xvalid.VALID_ASSETS_CATEGORIES
+    #     shot_categories = xvalid.VALID_SHOTS_CATEGORIES
+    #     if branch_category not in (asset_categories + shot_categories):
+    #         print ("update_task_user")
+    #         print ("{} category is not valid. Please enter one of these {}".format(branch_category,(asset_categories + shot_categories)))
+    #     else:
+    #         # create/connect to show database
+    #         db = xcon.server.xchange
+    #         db_collection = db[branch_category]
+    #         db_address = "tasks" + "." + task_name + "." + "artist"
+    #         db_collection.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                              {'$set': {db_address: artist_name}})
+    #
+    # def update_asset_category(show_name, asset_name, asset_category):
+    #     # create/connect to show database
+    #     db = xcon.server.xchange
+    #     db.assets.update({"show_name":show_name, "entry_name":asset_name},
+    #                         {'$set':{"category": asset_category}})
+    #     db.show.update({"show_name": show_name, "structure.assets.entry_name":asset_name},
+    #                         {"$set": {"assets.category": asset_category}})
+    #
+    # def update_entry_definition(show_name, branch_category, parent_category, entry_name, definition):
+    #     db = xcon.server.xchange
+    #     cursor = db[branch_category]
+    #     cursor.update({"show_name": show_name, "entry_name": entry_name, "category": parent_category},
+    #                   {"$set": {"definition": definition}})
+    #
+    #     print ("{} definition Updated!".format(entry_name))
+    #
+    # def add_asset_to_shot02(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
+    #     asset_categories = xvalid.VALID_ASSETS_CATEGORIES
+    #
+    #     if asset_category not in asset_categories:
+    #         print ("{} not a valid category. Please use one of these %s".format (asset_category, asset_categories))
+    #
+    #     else:
+    #         get_assets = db_content_summary(show_name, "assets")
+    #         search_combo = {"show_name": show_name, "entry_name": asset_name, "category": asset_category}
+    #
+    #         if search_combo not in get_assets:
+    #             print ("Asset does not exist. Please check your input!")
+    #
+    #         else:
+    #             db = xcon.server.xchange
+    #             cursor = db.sequences
+    #             get_assignments_list = []
+    #             current = cursor.find({'show_name': show_name,'entry_name':shot_name, 'category':seq_name}, {'_id': 0, 'content':1})
+    #             for i in current:
+    #                 for keys, values in i.iteritems():
+    #                     for each in values:
+    #                         get_assignments_list.append(each[0])
+    #
+    #             if asset_name in get_assignments_list:
+    #                 print ("Asset {} already assigned to {} shot. Please check your input!".format (asset_name, shot_name))
+    #
+    #             else:
+    #                 asset_path = "assignment" + "." + asset_name
+    #                 db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
+    #                                 {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
+    #
+    # def add_asset_to_shot(show_name, seq_name, shot_name, asset_name, asset_category, asset_count):
+    #     asset_categories = xvalid.VALID_ASSETS_CATEGORIES
+    #
+    #     if asset_category not in asset_categories:
+    #         print ("{} not a valid category. Please use one of these %s".format (asset_category, asset_categories))
+    #
+    #     else:
+    #         get_assets = db_content_summary(show_name, "assets")
+    #         search_combo = {"show_name": show_name, "entry_name": asset_name, "category": asset_category}
+    #
+    #         if search_combo not in get_assets:
+    #             print ("Asset does not exist. Please check your input!")
+    #
+    #         else:
+    #             db = xcon.server.xchange
+    #             cursor = db.sequences
+    #             get_assignments_list = []
+    #             current = cursor.find({'show_name': show_name,'entry_name':shot_name, 'category':seq_name}, {'_id': 0, 'content':1})
+    #             for i in current:
+    #                 for keys, values in i.iteritems():
+    #                     for each in values:
+    #                         get_assignments_list.append(each[0])
+    #
+    #             if asset_name in get_assignments_list:
+    #                 print ("Asset {} already assigned to {} shot. Please check your input!".format (asset_name, shot_name))
+    #
+    #             else:
+    #                 asset_path = "assignment" + "." + asset_name
+    #                 db.sequences.update({"show_name": show_name, "entry_name": shot_name, "category":seq_name},
+    #                                 {"$set": {asset_path: {'category':asset_category, 'count':asset_count}}})
     # DATABASE REMOVERS
     def remove_all_task_pub_slots(show_name, branch_category, parent_category, entry_name, task_name):
         try:
@@ -1734,14 +2238,14 @@ class OriginPublish():
 if __name__=="__main__":
     from origin_data_base import OriginEnvar
 
-    OriginEnvar.show_name = "Test"
+    OriginEnvar.show_name = "Mofo"
     OriginEnvar.branch_name = "origin_library"
-    OriginEnvar.category = "airplanes"
+    OriginEnvar.category = "plants"
     OriginEnvar.entry_name = "707"
     OriginEnvar.task_name = "modeling"
 
     c = OriginCreate()
-    c.task_pub_slot("Test_Slot")
+    # c.task_pub_slot("Test_Slot02")
     #
     #
     # c = OriginId.db_show_id()
@@ -1757,10 +2261,10 @@ if __name__=="__main__":
 
 
     ocreate = OriginCreate()
-    # ocreate.db_project(name="Test")
+    # ocreate.db_project(name="Mofo")
     # ocreate.db_branch(name="origin_library", branch_type=OriginBranchTypes().library)
-    # ocreate.db_category(name="airplanes", tasks_type=OriginTasksTypes().props)
-    # ocreate.db_asset(name="707")
+    # ocreate.db_category(name="plants", tasks_type=OriginTasksTypes().props)
+    # ocreate.db_asset(name="smurai_katana")
     # ocreate.create_task(name="another_task")
 
 

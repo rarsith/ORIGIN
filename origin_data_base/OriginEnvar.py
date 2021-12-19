@@ -1,8 +1,5 @@
 import os
 
-class OriginEnvarManagement():
-
-
 class OriginEnvar():
 
     @property
