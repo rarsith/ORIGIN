@@ -126,7 +126,7 @@ if __name__ == "__main__":
     test = test_position.find({}, {"_id": 1, "show_name": 1})
 
     app = QtWidgets.QApplication(sys.argv)
-    show_name = 'Dark'
+    show_name = 'Test'
     # branch_name = 'assets'
     # category_name = 'characters'
     # entry_name = 'hulkGreen'

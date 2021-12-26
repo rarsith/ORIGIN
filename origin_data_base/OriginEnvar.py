@@ -9,11 +9,7 @@ class OriginEnvar():
     @origin_id.setter
     def origin_id(self, origin_id):
         os.environ['ORIGIN_ID'] = origin_id
-        os.environ['ORIGIN_PROJECT'] = ''
-        os.environ['ORIGIN_PROJECT_BRANCH'] = ''
-        os.environ['ORIGIN_PROJECT_CATEGORY'] = ''
-        os.environ['ORIGIN_PROJECT_ENTITY'] = ''
-        os.environ['ORIGIN_ENTITY_TASK'] = ''
+
 
     @property
     def show_name(self):
@@ -22,10 +18,7 @@ class OriginEnvar():
     @show_name.setter
     def show_name(self, project):
         os.environ['ORIGIN_PROJECT'] = project
-        os.environ['ORIGIN_PROJECT_BRANCH'] = ''
-        os.environ['ORIGIN_PROJECT_CATEGORY'] = ''
-        os.environ['ORIGIN_PROJECT_ENTITY'] = ''
-        os.environ['ORIGIN_ENTITY_TASK'] = ''
+
 
     @property
     def branch_name(self):
@@ -34,9 +27,7 @@ class OriginEnvar():
     @branch_name.setter
     def branch_name(self, branch):
         os.environ['ORIGIN_PROJECT_BRANCH'] = branch
-        os.environ['ORIGIN_PROJECT_CATEGORY'] = ''
-        os.environ['ORIGIN_PROJECT_ENTITY'] = ''
-        os.environ['ORIGIN_ENTITY_TASK'] = ''
+
 
     @property
     def category(self):
@@ -45,8 +36,7 @@ class OriginEnvar():
     @category.setter
     def category(self, category):
         os.environ['ORIGIN_PROJECT_CATEGORY'] = category
-        os.environ['ORIGIN_PROJECT_ENTITY'] = ''
-        os.environ['ORIGIN_ENTITY_TASK'] = ''
+
 
     @property
     def entry_name(self):
@@ -55,7 +45,7 @@ class OriginEnvar():
     @entry_name.setter
     def entry_name(self, entity):
         os.environ['ORIGIN_PROJECT_ENTITY'] = entity
-        os.environ['ORIGIN_ENTITY_TASK'] = ''
+
 
     @property
     def task_name(self):
@@ -82,8 +72,8 @@ class OriginEnvar():
         os.environ['ORIGIN_TASK_PUB'] = pub
 
     def taget_path(self, *args):
-        qpath = '.'.join(args)
-        return qpath
+        path = '.'.join(args)
+        return path
 
 
 if __name__ == "__main__":
@@ -103,6 +93,8 @@ if __name__ == "__main__":
     print(g.category)
     print(g.entry_name)
     print(g.task_name)
+    print(g.task_imports_from)
+    print(g.task_pub)
 
     # class OQuery():
     #     def select_db_entity(self):

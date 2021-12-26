@@ -130,9 +130,9 @@ if __name__ == "__main__":
     show_name = 'Test'
     branch_name = 'assets'
     category_name = 'characters'
-    entry_name = 'hulkGreen'
+    entry_name = 'greenHulk'
     task_name = 'modeling'
-    pub_id = '60b7cabbca7fdd099e5d32c9'
+    # pub_id = '60b7cabbca7fdd099e5d32c9'
     test_dialog = SlotPublishesViewCore(main_pub_id=pub_id)
 
 

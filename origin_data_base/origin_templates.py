@@ -1,6 +1,11 @@
 import pprint
 from origin_utilities import read_json as oread
 
+def show_structure():
+    json_load = oread.open_json("../origin_config_json/origin_db_defaults/show_structure.json")
+    structure_read = oread.read_dictionary(json_load, 'structure')
+    return structure_read
+
 def task_defaults():
     json_load = oread.open_json("../origin_config_json/origin_db_templates/task_template.json")
     tasks_read = oread.read_dictionary(json_load, 'root')
@@ -23,5 +28,5 @@ def entry_definition(category):
 
 
 if __name__=="__main__":
-    tt = tasks_pub_slot_schema()
+    tt = show_structure()
     pprint.pprint (tt)
