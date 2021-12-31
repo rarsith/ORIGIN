@@ -1,6 +1,29 @@
 import os
 
+class OriginOSEnvar(object):
+
+    @property
+    def os_root(self):
+        return os.environ.get('ORIGIN_ROOT')
+
+
+    @os_root.setter
+    def os_root(self, root_path):
+        os.environ.get['ORIGIN_ROOT'] = root_path
+
+
+
 class OriginEnvar():
+
+    @property
+    def os_root(self):
+        return os.environ.get('ORIGIN_ROOT')
+
+
+    @os_root.setter
+    def os_root(self, root_path):
+        os.environ.get['ORIGIN_ROOT'] = root_path
+
 
     @property
     def origin_id(self):
@@ -56,45 +79,53 @@ class OriginEnvar():
         os.environ['ORIGIN_ENTITY_TASK'] = task
 
     @property
-    def task_imports_from(self):
-        return os.environ.get('ORIGIN_TASK_IMP')
+    def build_current_master_bundle(self):
+        return os.environ.get('ORIGIN_BUILD_MASTER')
 
-    @task_imports_from.setter
-    def task_imports_from(self, imp_from):
-        os.environ['ORIGIN_TASK_IMP'] = imp_from
+    @build_current_master_bundle.setter
+    def build_current_master_bundle(self, master_id):
+        os.environ['ORIGIN_BUILD_MASTER'] = master_id
 
     @property
-    def task_pub(self):
-        return os.environ.get('ORIGIN_TASK_PUB')
+    def shot_current_master_bundle(self):
+        return os.environ.get('ORIGIN_SHOT_MASTER')
 
-    @task_pub.setter
-    def task_pub(self, pub):
-        os.environ['ORIGIN_TASK_PUB'] = pub
+    @shot_current_master_bundle.setter
+    def shot_current_master_bundle(self, master_id):
+        os.environ['ORIGIN_SHOT_MASTER'] = master_id
+
+    @property
+    def bundle_stream(self):
+        return os.environ.get('ORIGIN_BUNDLE_STREAM')
+
+    @bundle_stream.setter
+    def bundle_stream(self, stream):
+        os.environ['ORIGIN_BUNDLE_STREAM'] = stream
 
     def taget_path(self, *args):
         path = '.'.join(args)
         return path
 
 
+
 if __name__ == "__main__":
     from origin_data_base import xcg_db_connection as xcon
 
     g = OriginEnvar()
-    # g.show_name = 'GUGU'
-    # g.branch_name = 'origin_library'
-    # g.category = 'airplanesXXX'
-    # g.entry_name = '707'
-    # g.task_name = 'modeling'
-    # g.task_imports_from = 'concept'
-    # g.task_imports_pub = 'render_geo'
+    g.show_name = 'GUGU'
+    g.branch_name = 'origin_library'
+    g.category = 'airplanesXXX'
+    g.entry_name = '707'
+    g.task_name = 'modeling'
+    g.bundle_stream = 'RND_stream'
 
     print(g.show_name)
     print(g.branch_name)
     print(g.category)
     print(g.entry_name)
     print(g.task_name)
-    print(g.task_imports_from)
-    print(g.task_pub)
+    print(g.bundle_stream)
+
 
     # class OQuery():
     #     def select_db_entity(self):

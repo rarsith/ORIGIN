@@ -1,21 +1,220 @@
 import uuid
 import re
+import os
 import getpass
+from asyncio import tasks
+
+import output as output
 from bson import ObjectId
 from bson.dbref import DBRef
+
 from origin_utilities import utils as xutil
 from origin_utilities.date_time import OriginDateTime
 from origin_data_base import origin_templates as otmp
 from origin_data_base import origin_templates_query as otmpq
 from origin_config import xcg_validation as xvalid
 from origin_data_base import xcg_db_connection as xcon
-from origin_data_base import OriginEnvar
+from origin_data_base.OriginEnvar import OriginEnvar, OriginOSEnvar
+from origin_data_base.OriginOSUtils import OriginOSUtils
 
 xnow = OriginDateTime()
 
 
 class JunkStorage(object):
     pass
+
+
+class OriginOutputPaths(object):
+    def __init__(self, version="", pub_slot="", output_file_name="default"):
+        self.version = version
+        self.pub_slot = pub_slot
+        self.output_file_name = output_file_name
+
+    def base_path(self):
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         OriginEnvar.task_name]
+        return path_entities
+
+
+    def main_publish_path(self):
+        base_path = self.base_path()
+        main_pub_elements = ["output", self.version, self.pub_slot, self.output_file_name]
+        path_entities = base_path+main_pub_elements
+
+        return path_entities
+
+    def original_images_path(self):
+        #TODO need to find a way to contain the file image seq with a REGEX pattern
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         OriginEnvar.task_name,
+                         "output",
+                         self.version,
+                         "original",
+                         self.pub_slot,
+                         self.output_file_name]
+
+        return path_entities
+
+    def review_video_path(self):
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         "data",
+                         OriginEnvar.task_name,
+                         self.version,
+                         self.pub_slot,
+                         self.output_file_name]
+
+        return path_entities
+
+    def preview_video_path(self):
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         "data",
+                         OriginEnvar.task_name,
+                         self.version,
+                         self.pub_slot,
+                         self.output_file_name]
+
+        return path_entities
+
+    def used_template_path(self):
+        pass
+
+    def work_file_path(self):
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         OriginEnvar.task_name,
+                         "output",
+                         self.version,
+                         self.output_file_name]
+
+        return path_entities
+
+    def wip_file_path(self):
+        path_entities = [OriginEnvar.show_name,
+                         OriginEnvar.branch_name,
+                         OriginEnvar.category,
+                         OriginEnvar.entry_name,
+                         OriginEnvar.task_name,
+                         "users",
+                         OriginUsers.get_current_user(),
+                         self.version,
+                         self.output_file_name]
+
+        return path_entities
+
+    @staticmethod
+    def origin():
+        return {'input': 'task/imports_from/slot/version/file.ext', 'link': 'insert_link'}
+
+    @staticmethod
+    def compose_db_path_dict(path_entities=[]):
+        main_path_all = dict(path_elements=path_entities)
+        return main_path_all
+
+    def compose_path(self, path_elements):
+        pass
+
+
+class OriginUsers(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+    def create_user(self, first_name, name, personal_email, job_title):
+        self.db.users.insert_one(
+            {
+                "first_name": first_name,
+                "name": name,
+                "active": True,
+                "personal_email": personal_email,
+                "job_title": job_title,
+                "user_name": {},
+                "internal_email": {},
+                "date": xnow.return_date(),
+                "time": xnow.return_time()
+            }
+        )
+        print(" user for {} created!".format(first_name + " " + name))
+        pass
+
+    @staticmethod
+    def get_current_user():
+        username = getpass.getuser()
+        return username
+
+
+class OriginDBVersions(object):
+
+    def version_increment(self, versions_list=[]):
+        if not len(versions_list) < 1:
+            conv_to_int = []
+
+            for versions in versions_list:
+                conv_to_int.append(versions)
+
+            highest = max(conv_to_int)
+            get_digit = re.findall('\d+', highest)
+
+            return "{0}{1:04d}".format("v", (int(get_digit[0]) + 1))
+
+        else:
+            return "{0}{1:04d}".format("v", (int(1)))
+
+    def db_task_ver_increase(self):
+        get_versions = xutil.db_find_key("publishes", "version",
+                                         show_name=OriginEnvar.show_name,
+                                         category=OriginEnvar.category,
+                                         entry_name=OriginEnvar.entry_name,
+                                         task_name=OriginEnvar.task_name,
+                                         )
+        new_version = self.version_increment(get_versions)
+        return new_version
+
+    def db_pubslot_ver_increase(self, collection_name, slot_name):
+
+        get_versions = xutil.db_find_key(collection_name, "version",
+                                         show_name=OriginEnvar.show_name,
+                                         category=OriginEnvar.category,
+                                         entry_name=OriginEnvar.entry_name,
+                                         task_name=OriginEnvar.task_name,
+                                         slot_name=slot_name
+                                         )
+
+        new_version = self.version_increment(get_versions)
+        return new_version
+
+    def db_master_bundle_ver_increase(self):
+
+        get_versions = xutil.db_find_key("bundles", "version",
+                                         show_name=OriginEnvar.show_name,
+                                         category=OriginEnvar.category,
+                                         entry_name=OriginEnvar.entry_name
+                                         )
+
+        new_version = self.version_increment(get_versions)
+        return new_version
+
+    def db_wip_files_version_increase(self, collection_name):
+        get_versions = xutil.db_find_key(collection_name, "version",
+                                         show_name=OriginEnvar.show_name,
+                                         category=OriginEnvar.category,
+                                         entry_name=OriginEnvar.entry_name,
+                                         task_name=OriginEnvar.task_name
+                                         )
+        new_version = self.version_increment(get_versions)
+        return new_version
 
 
 class OriginTasksTypes(object):
@@ -88,7 +287,9 @@ class OriginDefaults(object):
         category_tasks = self.db.show.find({"_id": root_id}, {'_id': 0, query_path: 1})
 
         for data in category_tasks:
-            return data["show_defaults"][(OriginEnvar.category + "_" + default_type)]
+            full_structure = data["show_defaults"][(OriginEnvar.category + "_" + default_type)]
+            properties_names = list(full_structure.keys())
+            return full_structure, properties_names
 
 
 class OriginId(object):
@@ -117,16 +318,40 @@ class OriginId(object):
                              OriginEnvar.entry_name)
 
     @classmethod
-    def db_main_pub_id(cls, version):
+    def db_wip_file_id(cls, version):
         return cls.create_id(OriginEnvar.show_name,
                              OriginEnvar.branch_name,
                              OriginEnvar.category,
                              OriginEnvar.entry_name,
+                             OriginEnvar.task_name,
+                             "wip",
                              version)
 
     @classmethod
-    def db_slot_pub_id(cls, version):
-        return cls.create_id(OriginEnvar.show_name,
+    def db_main_pub_id(cls, version):
+        return cls.create_id("main_pub",
+                             OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             OriginEnvar.task_name,
+                             version)
+
+    @classmethod
+    def db_slot_pub_id(cls, pub_slot,version):
+        return cls.create_id("slot_pub",
+                             pub_slot,
+                             OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             OriginEnvar.task_name,
+                             version)
+
+    @classmethod
+    def db_master_bundle_id(cls, version):
+        return cls.create_id("bundle",
+                             OriginEnvar.show_name,
                              OriginEnvar.branch_name,
                              OriginEnvar.category,
                              OriginEnvar.entry_name,
@@ -191,12 +416,43 @@ class OriginDbPath(object):
         return "assignment"
 
 
+class ODBRef(object):
+    def __init__(self, collection="", entity_id=""):
+        self.collection = collection
+        self.entity_id = entity_id
+        self.db = xcon.server.xchange
+
+
+    @property
+    def odbref(self):
+        id_list = [self.collection, self.entity_id]
+        gen_id = ",".join(id_list)
+        return str(gen_id)
+
+    @property
+    def oderef(self, ref_string, get_field=None):
+        extr_collection, extr_entity_id = ref_string.split(",")
+        if not get_field:
+            return extr_collection, extr_entity_id
+        elif get_field:
+            cursor = self.db[extr_collection]
+            db_field = cursor.find_one({"_id":extr_entity_id})
+            return db_field[get_field]
+
+
 class OriginDbRef(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
+
     @classmethod
-    def add_db_id_reference(cls, collection, parent_doc_id, destination_slot, id_to_add, from_collection):
+    def add_db_id_reference(cls, collection, parent_doc_id, destination_slot, id_to_add, from_collection, replace=False):
         db = xcon.server.xchange
-        db[collection].update_one({"_id": parent_doc_id},
-                                  {"$push": {destination_slot: DBRef(from_collection, id_to_add)}})
+        if not replace:
+            db[collection].update_one({"_id": parent_doc_id},
+                                      {"$push": {destination_slot: ODBRef(from_collection, id_to_add).odbref}})
+        else:
+            db[collection].update_one({"_id": parent_doc_id},
+                                      {"$set": {destination_slot: ODBRef(from_collection, id_to_add).odbref}})
 
 
 class OriginCreate(object):
@@ -205,26 +461,27 @@ class OriginCreate(object):
 
     def db_project(self, name):
         entity_id = OriginId.create_id("root", name)
+
+        save_data = dict(
+            _id= entity_id,
+            show_code= " ",
+            show_name= name,
+            structure= otmp.show_structure(),
+            show_defaults= dict(asset_definition= otmp.entry_definition("build"),
+                                shots_definition= otmp.entry_definition("shot"),
+                                characters_tasks= otmp.tasks_schema("character"),
+                                props_tasks= otmp.tasks_schema("prop"),
+                                environments_tasks= otmp.tasks_schema("environment"),
+                                shots_tasks= otmp.tasks_schema("shot")),
+            active= True,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            owner= getpass.getuser(),
+            show_type= "vfx")
+
         try:
-            self.db.show.insert_one(
-                {
-                    "_id": entity_id,
-                    "show_code": " ",
-                    "show_name": name,
-                    "structure": otmp.show_structure(),
-                    "show_defaults": {"asset_definition": otmp.entry_definition("build"),
-                                      "shots_definition": otmp.entry_definition("shot"),
-                                      "characters_tasks": otmp.tasks_schema("character"),
-                                      "props_tasks": otmp.tasks_schema("prop"),
-                                      "environments_tasks": otmp.tasks_schema("environment"),
-                                      "shots_tasks": otmp.tasks_schema("shot")},
-                    "active": True,
-                    "date": xnow.return_date(),
-                    "time": xnow.return_time(),
-                    "owner": getpass.getuser(),
-                    "show_type": "vfx"
-                }
-            )
+            self.db.show.insert_one(save_data)
+
             print("{} show created!".format(name))
         except Exception as e:
             print("{} Error! Nothing created!".format(e))
@@ -251,27 +508,33 @@ class OriginCreate(object):
         root_id = OriginId.db_show_id()
         asset_id = OriginDbPath.origin_path(OriginDbPath.db_category_path(), name)
         collection = self.db[OriginShowQuery().get_branch_type]
+        get_tasks_cobfig = OriginDefaults().get_show_defaults(OriginDefaults().root_tasks)
+
+
+        entity_attributes = dict(
+            _id= asset_id,
+            show_name= OriginEnvar.show_name,
+            entry_name= name,
+            type= "build",
+            category= OriginEnvar.category,
+            status= " ",
+            assignment= {},
+            tasks= get_tasks_cobfig[0],
+            sync_tasks= dict.fromkeys(get_tasks_cobfig[1], []),
+            master_bundle=dict(main_stream=[]),
+            active= True,
+            definition= OriginDefaults().get_show_defaults(OriginDefaults().root_definitions),
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            owner= getpass.getuser()
+
+        )
+
         try:
-            collection.insert_one(
-                {
-                    "_id": asset_id,
-                    "show_name": OriginEnvar.show_name,
-                    "entry_name": name,
-                    "type": "build",
-                    "category": OriginEnvar.category,
-                    "status": " ",
-                    "assignment": {},
-                    "tasks": OriginDefaults().get_show_defaults(OriginDefaults().root_tasks),
-                    "master_bundle": [],
-                    "active": True,
-                    "definition": OriginDefaults().get_show_defaults(OriginDefaults().root_definitions),
-                    "date": xnow.return_date(),
-                    "time": xnow.return_time(),
-                    "owner": getpass.getuser()
-                }
-            )
+            collection.insert_one(entity_attributes)
+
             insert_entry = OriginDbPath.origin_path("structure", OriginEnvar.branch_name, OriginEnvar.category)
-            OriginDbRef.add_db_id_reference("show", root_id, insert_entry, asset_id, OriginEnvar.branch_name)
+            OriginDbRef.add_db_id_reference("show", root_id, insert_entry, asset_id, OriginShowQuery().get_branch_type)
             print("{} Origin Asset created!".format(name))
 
         except Exception as e:
@@ -279,7 +542,7 @@ class OriginCreate(object):
 
     def asset_task(self, name):
         asset_id = OriginDbPath().db_entry_path()
-        cursor = self.db[OriginQuery().get_branch_type]
+        cursor = self.db[OriginShowQuery().get_branch_type]
         task_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_path(), name)
         tasks_defaults = otmp.task_defaults()
         cursor.update_one({"_id": asset_id}, {"$set": {task_db_path: tasks_defaults}})
@@ -288,7 +551,7 @@ class OriginCreate(object):
 
     def task_pub_slot(self, name):
         asset_id = OriginDbPath().db_entry_path()
-        cursor = self.db[OriginQuery().get_branch_type]
+        cursor = self.db[OriginShowQuery().get_branch_type]
         task_pub_slot_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_pub(), name)
         tasks_pub_slot_defaults = otmp.tasks_pub_slot_schema()
         cursor.update_one({"_id": asset_id}, {"$set": {task_pub_slot_db_path: tasks_pub_slot_defaults}})
@@ -308,6 +571,24 @@ class OriginShowQuery(object):
                 return each['structure']
         except:
             pass
+
+    def get_branches(self):
+        show_structure = self.structure()
+        return list(show_structure.keys())
+
+    def get_categories(self, branch):
+        show_structure = self.structure()
+        full_list = list(show_structure[branch])
+        full_list.remove("type")
+        return full_list
+
+    def get_entities_names(self, branch, category):
+        entities_found = list()
+        show_structure = self.structure()
+        all_referenced_entities = list(show_structure[branch][category])
+        for entity in all_referenced_entities:
+            entities_found.append(ODBRef().oderef(entity, "entry_name"))
+        return entities_found
 
     @property
     def get_branch_type(self):
@@ -349,29 +630,6 @@ class OriginShowQuery(object):
 
         except:
             pass
-
-    # def get_all_assets(self):
-    #     try:
-    #         assets_list = []
-    #         db = xcon.server.xchange
-    #         all_assets = db.show.find({"_id": OriginId.db_show_id(), "active": True}, {'_id': 0, 'entry_name': 1})
-    #         for each in all_assets:
-    #             assets_list.append(each['entry_name'])
-    #         return assets_list
-    #     except:
-    #         pass
-
-    # def get_all_shots(self, show_name, category):
-    #     try:
-    #         shots_list = []
-    #         db = xcon.server.xchange
-    #         all_shots = db.sequences.find({"show_name": show_name, "category": category, "active": True},
-    #                                       {'_id': 0, 'entry_name': 1})
-    #         for each in all_shots:
-    #             shots_list.append(each['entry_name'])
-    #         return shots_list
-    #     except:
-    #         pass
 
 
 class OriginEntitiesQuery(object):
@@ -546,6 +804,23 @@ class OriginEntitiesQuery(object):
             pass
 
 
+####
+class OriginQuery(object):
+    def __init__(self, query_type):
+        self.query_type = query_type
+        self.db = xcon.server.xchange
+
+    def structure(self):
+        try:
+            all_assets = self.db[self.query_type].find_one({"_id": OriginId.db_show_id(), "active": True},
+                                           {'_id': 0, 'structure': 1})
+            for each in list(all_assets):
+                return each['structure']
+        except:
+            pass
+####
+
+
 class OriginUpdate(object):
     def __init__(self):
         self.db = xcon.server.xchange
@@ -645,56 +920,25 @@ class OriginUpdate(object):
 
     def remove_entry(self, show_name, branch_category, entry_category, entry_name):
         try:
+            entry_path = "structure" + "." + branch_category + "." + entry_category + "." + entry_name
+            self.db.show.update({"show_name": show_name}, {"$unset": {entry_path: 1}})
 
-            show_branches = xvalid.VALID_SHOW_BRANCHES
-            if branch_category not in show_branches:
-                print("remove_entry")
-                print("{} category is not valid. Please enter one of these {}".format(branch_category, show_branches))
-            else:
-                # create/connect to show database
-                db = xcon.server.xchange
-                # remove the entry from the show structure
-                entry_path = "structure" + "." + branch_category + "." + entry_category + "." + entry_name
-                db.show.update({"show_name": show_name}, {"$unset": {entry_path: 1}})
-
-                # remove entry from its collection
-                cursor = db[branch_category]
-                cursor.remove({"show_name": show_name, "category": entry_category, "entry_name": entry_name},
-                              {entry_name})
-
-                print('entry {} deleted from {} collection and removed from {} show structure'.format(entry_name,
-                                                                                                      branch_category,
-                                                                                                      show_name))
-
+            # remove entry from its collection
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            cursor.remove({"_id": OriginId.db_entry_id()})
+            print('entry {} deleted from {} collection and removed from {} show structure'.format(entry_name,
+                                                                                                  branch_category,
+                                                                                                  show_name))
 
         except:
             pass
 
 
 class OriginPublish(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
 
-    def get_sub_branches(show_name, branch_name):
-        sub_branches_list = []
-        db = xcon.server.xchange
-        query_path = "structure" + "." + branch_name
-        all_branches = db.show.find({"show_name": show_name, "active": True},
-                                    {'_id': 0, query_path: 1})
-        for each in list(all_branches):
-            sub_branches_list.append(list(each['structure'][branch_name].keys()))
-        return sub_branches_list[0]
-
-    def get_sub_branches_content(self, show_name, branch_name, category_name):
-        db = xcon.server.xchange
-        query_path = "structure" + "." + branch_name + "." + category_name
-        all_branches = db.show.find({"show_name": show_name, "active": True},
-                                    {'_id': 0, query_path: 1})
-
-        for each in all_branches:
-            return (list(each['structure'][branch_name][category_name].keys()))
-
-    # DB_PUBLISHES GETTERS
-    def get_db_publishes_ids(self, collection, show_name=None, branch_name=None, category_name=None, entry_name=None,
-                             task_name=None, view_limit=0):
+    def get_db_publishes_ids(self, collection, show_name=None, branch_name=None, category_name=None, entry_name=None, task_name=None, view_limit=0):
         store_value = list()
         db = xcon.server.xchange
 
@@ -735,7 +979,7 @@ class OriginPublish(object):
 
         return store_value
 
-    def get_db_values(collection, document_id, value_to_return):
+    def get_db_values(self, collection, document_id, value_to_return):
         db = xcon.server.xchange
         if not collection or not document_id or collection == None or document_id == None:
             return
@@ -743,199 +987,139 @@ class OriginPublish(object):
             selected_document = db[collection].find_one({"_id": ObjectId(document_id)})
             return (selected_document[value_to_return])
 
-    def get_published_entries(show_name, branch_category, parent_category, entry_name, task_name):
-        db = xcon.server.xchange
-        db.publishes.find({"show_name": show_name, "entry_name": entry_name, "task_name": task_name}, {"_id": 0})
-        pass
+    def db_main_publish(self):
 
-    # DATABASE MISC
-    def db_task_ver_increase(self, show_name, entity_type, entity_name, task_name):
+        version = OriginDBVersions().db_task_ver_increase()
+        set_display_name = "_".join([OriginEnvar.entry_name, "main_publish"])
 
-        get_versions = xutil.db_find_key("publishes", "version",
-                                         show_name=show_name,
-                                         category=entity_type,
-                                         entry_name=entity_name,
-                                         task_name=task_name
-                                         )
+        common_id = OriginId.db_main_pub_id(version)
+        collection_name = "publishes"
 
-        if not len(get_versions) < 1:
-            conv_to_int = []
-
-            for versions in get_versions:
-                conv_to_int.append(versions)
-
-            highest = max(conv_to_int)
-            get_digit = re.findall('\d+', highest)
-
-            return "{0}{1:04d}".format("v", (int(get_digit[0]) + 1))
-
-        else:
-            return "{0}{1:04d}".format("v", (int(1)))
-
-    def db_pubslot_ver_increase(self, collection_name, show_name, entity_type, entity_name, slot_name):
-
-        get_versions = xutil.db_find_key(collection_name, "version",
-                                         show_name=show_name,
-                                         category=entity_type,
-                                         entry_name=entity_name,
-                                         slot_name=slot_name
-                                         )
-
-        if not len(get_versions) < 1:
-            conv_to_int = []
-
-            for versions in get_versions:
-                conv_to_int.append(versions)
-
-            highest = max(conv_to_int)
-            get_digit = re.findall('\d+', highest)
-
-            return "{0}{1:04d}".format("v", (int(get_digit[0]) + 1))
-
-        else:
-            return "{0}{1:04d}".format("v", (int(1)))
-
-    def db_master_bundle_ver_increase(self, collection_name, show_name, entity_type, entity_name):
-
-        get_versions = xutil.db_find_key(collection_name, "version",
-                                         show_name=show_name,
-                                         category=entity_type,
-                                         entry_name=entity_name
-                                         )
-
-        if not len(get_versions) < 1:
-            conv_to_int = []
-
-            for versions in get_versions:
-                conv_to_int.append(versions)
-
-            highest = max(conv_to_int)
-            get_digit = re.findall('\d+', highest)
-
-            return "{0}{1:04d}".format("v", (int(get_digit[0]) + 1))
-
-        else:
-            return "{0}{1:04d}".format("v", (int(1)))
-
-    def db_publish(self, show_name, branch_name, category, entry_name, task_name, bundle_type, bundle_version, status):
-
-        version = self.db_task_ver_increase(show_name, category, entry_name, task_name)
-        set_display_name = "_".join([entry_name, "main_publish"])
-
-        common_id = ObjectId()
-        db = xcon.server.xchange
-        collection_name = "_".join(["publishes"])
-        published = db[collection_name].insert_one({
-            "_id": common_id,
-            "reviewable_component": "insert_movie",
-            "show_name": show_name,
-            "entry_name": entry_name,
-            "category": category,
-            "branch": branch_name,
-            "task_name": task_name,
-            "status": status,
-            "description": [],
-            "artist": get_current_user(),
-            "version": version,
-            "date": xnow.return_date(),
-            "time": xnow.return_time(),
-            "publish_packaging": "main",
-            "publishing_slots": [],
-            "display_name": set_display_name,
-            "bundle_type": bundle_type,
-            "bundle_version": bundle_version
-        }
+        save_content = dict(
+            _id= common_id,
+            reviewable_component= "insert_movie",
+            show_name= OriginEnvar.show_name,
+            entry_name= OriginEnvar.entry_name,
+            category= OriginEnvar.category,
+            branch= OriginEnvar.branch_name,
+            task_name= OriginEnvar.task_name,
+            status= "PENDING_REVIEW",
+            description= [],
+            artist= OriginUsers.get_current_user(),
+            version= version,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            publish_packaging= "main",
+            publishing_slots= [],
+            display_name= set_display_name
         )
 
-        xcon.server.close()
+
+        published = self.db[collection_name].insert_one(save_content)
+
         print("{0} Main Publish Done!".format(set_display_name))
-        return (published.inserted_id), collection_name
+        return published.inserted_id, collection_name
 
-    def pub_slot_publish(show_name, branch_name, category, entry_name, task_name, pub_slot):
-        collection_name_elem = ["publish", "slots", task_name]
-        collection_name = "_".join(collection_name_elem)
-        version = db_pubslot_ver_increase(collection_name, show_name, category, entry_name, pub_slot)
-        set_display_name = ["pubslot", pub_slot, task_name]
-        status = "PENDING-REVIEW"
-        build_server_path = [show_name, branch_name, category, entry_name, task_name, version, pub_slot]
-        common_id = ObjectId()
+    def db_slot_publish(self, pub_slot):
 
-        main_path = 'project/branch/category/entry/task/output/version/slot/file.ext'
-        review_images_path = 'project/branch/category/entry/data/task/version/slot/reviewable/file_v001.####.exr'
-        review_video_path = 'project/branch/category/entry/data/task/version/slot/reviewable/file_v001.mov'
-        preview_video_path = 'project/branch/category/entry/data/task/version/slot/reviewable/file_v001_preview.mov'
-        used_template_path = 'project/branch/category/templates/task/versions/template_v001.scene'
-        work_file_path = 'project/branch/category/entry/task/output/versions/origin_file.scene'
-        origin = {'input': 'task/imports_from/slot/version/file.ext', 'link': 'insert_link'}
+        collection_name = "_".join(["publish", "slots", OriginEnvar.task_name])
+        version = OriginDBVersions().db_pubslot_ver_increase(collection_name, pub_slot)
+        set_display_name = "_".join(["pubslot", pub_slot, OriginEnvar.task_name])
+        build_server_path = [OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             OriginEnvar.task_name,
+                             version,
+                             pub_slot]
+
+        common_id = OriginId.db_slot_pub_id(pub_slot, version)
         bundle = 'current_bundle'
 
-        db = xcon.server.xchange
-        published_slot = db[collection_name].insert_one({
-            "_id": common_id,
-            "reviewable_component": "insert_movie_path",
-            "slot_thumbnail": "insert_thumbnail_path",
-            "show_name": show_name,
-            "entry_name": entry_name,
-            "category": category,
-            "branch": branch_name,
-            "task_name": task_name,
-            "artist": get_current_user(),
-            "slot_name": pub_slot,
-            "status": status,
-            "version_origin": "created",
-            "version": version,
-            "date": xnow.return_date(),
-            "time": xnow.return_time(),
-            "publish_packaging": "slots",
-            "parent_collection": collection_name,
-            "display_name": "_".join(set_display_name),
-            "output_path": build_server_path,
-            "components": {"path": main_path,
-                           "rc_source_images": review_images_path,
-                           "rc_source_video": review_video_path,
-                           "rc_preview": preview_video_path,
-                           "template": used_template_path,
-                           "work_file": work_file_path,
-                           "chain": origin,
-                           "bundle": bundle},
-            "rc_output_path": "_path"
-        }
-        )
 
-        xcon.server.close()
+        save_content = dict(
+            _id=common_id,
+            reviewable_component = "insert_movie_path",
+            slot_thumbnail= "insert_thumbnail_path",
+            show_name= OriginEnvar.show_name,
+            entry_name= OriginEnvar.entry_name,
+            category= OriginEnvar.category,
+            branch= OriginEnvar.branch_name,
+            task_name= OriginEnvar.task_name,
+            update_type="non-critical",
+            artist= OriginUsers.get_current_user(),
+            slot_name= pub_slot,
+            status= "PENDING-REVIEW",
+            version_origin= "created",
+            version= version,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            publish_packaging= "slots",
+            parent_collection= collection_name,
+            display_name= set_display_name ,
+            output_path= build_server_path,
+            components= dict(path=OriginOutputPaths(version, pub_slot, "cache.abc").main_publish_path(),
+                             rc_source_images=OriginOutputPaths(version, pub_slot, "image.%04d.exr").original_images_path(),
+                             rc_source_video= OriginOutputPaths(version, pub_slot, "video.mov").review_video_path(),
+                             rc_preview= OriginOutputPaths(version, pub_slot, "video.mov").preview_video_path(),
+                             template= OriginOutputPaths().used_template_path(),
+                             work_file= OriginOutputPaths(version, "work_scene.ext").work_file_path(),
+                             chain= OriginOutputPaths().origin(),
+                             bundle= bundle,
+                             rc_output_path="_path"))
+
+        published_slot = self.db[collection_name].insert_one(save_content)
+
         print("{0} slot has been published".format(pub_slot))
-        return (published_slot.inserted_id), collection_name
-
-    def create_master_bundle(show_name, branch_name, category, entry_name):
-        status = "PENDING-REVIEW"
-        collection_name = "bundles"
-        common_id = ObjectId()
-        entity_tasks = get_tasks(show_name, branch_name, category, entry_name)
-        version = db_master_bundle_ver_increase(collection_name, show_name, category, entry_name)
-        set_display_name = [entry_name, "master_bundle"]
-
-        db = xcon.server.xchange
-        published_slot = db[collection_name].insert_one({
-            "_id": common_id,
-            "show_name": show_name,
-            "entry_name": entry_name,
-            "category": category,
-            "branch": branch_name,
-            "display_name": "_".join(set_display_name),
-            "artist": get_current_user(),
-            "status": status,
-            "version": version,
-            "date": xnow.return_date(),
-            "time": xnow.return_time(),
-            "bundle_slots": dict.fromkeys(entity_tasks, [])
-        }
-        )
-
-        xcon.server.close()
-        print("{0} bundle has been published".format("_".join(set_display_name)))
         return published_slot.inserted_id, collection_name
 
-    def select_entity(collection, show_name, branch_name, category, entry_name, version):
+    def db_publish(self):
+        task_pub_slots = OriginEntitiesQuery().get_task_pub_slots()
+        main_publish = self.db_main_publish()
+        for pub_slot in task_pub_slots:
+            pub_slots_publish = self.db_slot_publish(pub_slot)
+
+            OriginDbRef.add_db_id_reference(main_publish[1],
+                                            main_publish[0],
+                                            "publishing_slots",
+                                            pub_slots_publish[0],
+                                            pub_slots_publish[1])
+        return main_publish
+
+    def db_work_file_save(self, file_name):
+        version = OriginDBVersions().db_wip_files_version_increase("work_files")
+        set_display_name = "_".join([OriginEnvar.entry_name,OriginEnvar.task_name, "work_file"])
+
+        common_id = OriginId.db_wip_file_id(version)
+        collection_name = "work_files"
+
+        save_content = dict(
+            _id= common_id,
+            show_name= OriginEnvar.show_name,
+            entry_name= OriginEnvar.entry_name,
+            category= OriginEnvar.category,
+            branch= OriginEnvar.branch_name,
+            task_name= OriginEnvar.task_name,
+            status= "WIP",
+            description= [],
+            artist= OriginUsers.get_current_user(),
+            version= version,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            publish_packaging= "wip_scene",
+            display_name= set_display_name,
+            origin=[],
+            components = dict(main_path = OriginOutputPaths(version, output_file_name=file_name).wip_file_path())
+
+        )
+
+
+        published = self.db[collection_name].insert_one(save_content)
+
+        print("{0} Saved!".format(set_display_name))
+        return published.inserted_id, collection_name
+
+    def select_entity(self, collection, show_name, branch_name, category, entry_name, version):
         bundle_slots = list()
         db = xcon.server.xchange
         select_bundle = db[collection].find(
@@ -946,92 +1130,162 @@ class OriginPublish(object):
 
         return bundle_slots[0]
 
-    def add_db_id_reference(collection, parent_doc_id, parent_doc_slot, id_to_add, from_collection):
-        db = xcon.server.xchange
-        db[collection].update_one({"_id": ObjectId(parent_doc_id)},
-                                  {"$push": {parent_doc_slot: DBRef(from_collection, id_to_add)}})
 
-    def get_db_referenced_attr(self, source_collection, source_id, source_attr, find_attr):
-        db = xcon.server.xchange
-        list_attr = list()
-        if not source_id or source_id == None:
-            return
-        else:
-            id_list = db[source_collection].find_one({"_id": ObjectId(source_id)})
-            for each_id in id_list[source_attr]:
-                attr_data = (db.dereference(each_id)[find_attr])
-                list_attr.append(attr_data)
-            return list_attr
+class OriginBundle(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
 
-    def db_create_bundle():
+    def create_bundle_slot(self, name):
         pass
 
-    def db_validate_bundle():
+    def add_to_bundle(self, entity_id, bundle_id, slot):
+
+        OriginDbRef.add_db_id_reference("bundles",
+                                        bundle_id,
+                                        "master_bundle.{}".format(slot),
+                                        entity_id,
+                                        OriginShowQuery().get_branch_type,
+                                        replace=True)
+        return bundle_id
+
+    def remove_bundle_slot(self, name):
         pass
 
-    def db_health_check():
+    def update_bundle_slot(self, name):
         pass
 
-    #####USERS#####
-    def create_user(first_name, name, personal_email, job_title):
-        db = xcon.server.xchange
-        db.users.insert_one(
-            {
-                "first_name": first_name,
-                "name": name,
-                "active": True,
-                "personal_email": personal_email,
-                "job_title": job_title,
-                "user_name": {},
-                "internal_email": {},
-                "date": xnow.return_date(),
-                "time": xnow.return_time(),
-                "created_by": getpass.getuser()
+    def update_master_bundle(self):
+        pass
 
-            }
+    def set_as_current(self, bundle_id, add_to_stream="main_stream"):
+
+        OriginDbRef.add_db_id_reference(OriginShowQuery().get_branch_type,
+                                        OriginId.db_entry_id(),
+                                        "master_bundle.{}".format(add_to_stream),
+                                        bundle_id,
+                                        "bundles",
+                                        replace=True)
+        return bundle_id
+
+    def set_slot_state(self, state):
+        statuses = ["renderable", "non-renderable", "matte_object"]
+
+        pass
+
+    def db_validate_bundle(self):
+        pass
+
+    def db_health_check(self):
+        pass
+
+    def db_create_bundle_stream(self, name):
+        try:
+            asset_id = OriginDbPath().db_entry_path()
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            db_path = OriginDbPath.origin_path(OriginDbPath.db_asset_master_bundle_path(), (name+"_"+"stream"))
+
+            cursor.update_one({"_id": asset_id}, {"$set": {db_path:[]}})
+            print("{} Bundle Stream  created!".format(name))
+            return name
+
+        except Exception as e:
+            print("{} Error! Nothing Created!".format(e))
+
+    def db_move_to_stream(self, from_stream, to_stream):
+        try:
+            task_path = OriginDbPath.db_task_pub()
+            print(task_path)
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            cursor.update_one({"_id": OriginId.db_entry_id()}, {"$unset": {task_path: 1}})
+            cursor.update_one({"_id": OriginId.db_entry_id()}, {"$set": {task_path: {}}})
+        except:
+            pass
+
+    def db_create_bundle(self):
+        status = "PENDING-REVIEW"
+        entity_tasks = OriginEntitiesQuery().get_tasks()
+        version = OriginDBVersions().db_master_bundle_ver_increase()
+        common_id = OriginId.db_master_bundle_id(version)
+        set_display_name = "_".join([OriginEnvar.entry_name, "bundle"])
+
+        save_content=dict(
+            _id= common_id,
+            show_name= OriginEnvar.show_name,
+            entry_name= OriginEnvar.entry_name,
+            category= OriginEnvar.category,
+            branch= OriginEnvar.branch_name,
+            display_name= set_display_name,
+            artist= OriginUsers.get_current_user(),
+            status= status,
+            version= version,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            master_bundle=dict.fromkeys(entity_tasks,[])
         )
-        print(" user for {} created!".format(first_name + " " + name))
-        pass
 
-    def get_current_user():
-        username = getpass.getuser()
-        return username
+        master_bundle = self.db.bundles.insert_one(save_content)
 
+        print("{0}, {1} has been published".format(set_display_name, version))
+        return master_bundle.inserted_id
+
+
+class OriginWorkSession(object):
+    pass
 
 if __name__ == "__main__":
-    from origin_data_base import OriginEnvar
+    from origin_data_base.OriginEnvar import OriginEnvar, OriginOSEnvar
 
-    OriginEnvar.show_name = "Mofo"
-    OriginEnvar.branch_name = "library_"
-    OriginEnvar.category = "TTT"
-    OriginEnvar.entry_name = "102255"
-    OriginEnvar.task_name = "animation"
+    OriginOSEnvar.os_root = "D:/PROJECTS"
 
-    c = OriginCreate()
-    # c.task_pub_slot("Test_Slot02")
-    #
-    #
-    # c = OriginId.db_show_id()
-    # print(c)
-    # db_paths = OriginDbPath.db_task_imp_from()
-    # print(db_paths)
-    #
-    # db_update = OriginUpdate()
+    OriginEnvar.show_name = "Test"
+    OriginEnvar.branch_name = "vegetation"
+    OriginEnvar.category = "trees"
+    OriginEnvar.entry_name = "testy_palm"
+    OriginEnvar.task_name = "task_test"
+
+    db_update = OriginUpdate()
     # db_update.task_imports_from(['testCCC','testB','testBBBBB'])
     # db_update.update_task_is_active(False)
     # db_update.update_task_pub_slot(['slot1', 'slot2', 'slot3'])
     # db_update.update_task_pub_slot_dict([{"proj":{}}])
 
     ocreate = OriginCreate()
-    # ocreate.db_project(name="Mofo")
-    # ocreate.db_show_branch(name="library_", branch_type=OriginBranchTypes().library)
-    # ocreate.db_category(name="TTT", tasks_type=OriginTasksTypes().shots)
-    # ocreate.db_asset(name="xx-xx")
-    # ocreate.asset_task(name="another")
+    # ocreate.db_project(name="Test")
+    # ocreate.db_show_branch(name="vegetation", branch_type=OriginBranchTypes().build)
+    # ocreate.db_category(name="trees", tasks_type=OriginTasksTypes().props)
+    # ocreate.db_asset(name="testy_palm")
+    # ocreate.asset_task(name="task_test")
+    # ocreate.task_pub_slot(name="render_geo")
 
-    oq = OriginUpdate()
-    tsk_cont = oq.remove_all_task_import_slots()
-    print(tsk_cont)
+
+    # dbRef = ODBRef("sdxcgdsjkhfg", "sdfkgkdf").generate_dbref
+    # deRef = ODBRef().deref(dbRef)
+    # print(dbRef)
+
+    pub = OriginPublish()
+    # pub.db_work_file_save("cahe.abc")
+    m_pub = pub.db_publish()
+    # print(m_pub)
+    # pub.db_slot_publish("xxx")
+    # pub.create_master_bundle()
+
+    obundle = OriginBundle()
+    # obundle.add_to_bundle("main_pub.Test.vegetation.tree.testy_palm.task_test.v0001",
+    #                       "bundle.Test.vegetation.tree.testy_palm.v0001",
+    #                       OriginEnvar().task_name)
+    # bundle_id = obundle.db_create_bundle()
+    # obundle.set_as_current("bundle.Test.vegetation.tree.testy_palm.v0001", "main_stream")
+    # obundle.db_create_bundle_stream("RND")
+
+    oq = OriginShowQuery()
+    # tsk_cont = oq.get_entities_names(branch='library_', category="TTT")
+    # print(tsk_cont)
+
+    opaths = OriginOutputPaths("v001", "render_geo", "cache.abc")
+    # cc = opaths.main_publish_path()
+    # print (cc)
+
+
 
     # oquery = OriginShowQuery()
     # ff = oquery.structure()
@@ -1042,6 +1296,9 @@ if __name__ == "__main__":
     # OriginQuery.show(OriginPath.definition, OriginType.content)
     # OriginCreate.Asset().at_path()
     # print (ocreate)
+
+    odefaults = OriginDefaults()
+    # odefaults.get_show_defaults("tasks")
 
     import pprint
     # import os

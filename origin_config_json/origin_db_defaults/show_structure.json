@@ -1,6 +1,6 @@
 {"structure":{"sequences":{"type": "shots"},
   "assets":
-  {"type": "assets",
+  {"type": "build",
     "characters":[],
     "environments":[],
     "props":[]}
