@@ -4,7 +4,7 @@ import os
 import getpass
 from asyncio import tasks
 
-import output as output
+# import output as output
 from bson import ObjectId
 from bson.dbref import DBRef
 
@@ -206,6 +206,17 @@ class OriginDBVersions(object):
         new_version = self.version_increment(get_versions)
         return new_version
 
+    def db_sync_tasks_ver_increase(self):
+
+        get_versions = xutil.db_find_key("task_sync", "version",
+                                         show_name=OriginEnvar.show_name,
+                                         category=OriginEnvar.category,
+                                         entry_name=OriginEnvar.entry_name
+                                         )
+
+        new_version = self.version_increment(get_versions)
+        return new_version
+
     def db_wip_files_version_increase(self, collection_name):
         get_versions = xutil.db_find_key(collection_name, "version",
                                          show_name=OriginEnvar.show_name,
@@ -357,6 +368,15 @@ class OriginId(object):
                              OriginEnvar.entry_name,
                              version)
 
+    @classmethod
+    def db_sync_tasks_id(cls, version):
+        return cls.create_id("sync_tasks",
+                             OriginEnvar.show_name,
+                             OriginEnvar.branch_name,
+                             OriginEnvar.category,
+                             OriginEnvar.entry_name,
+                             version)
+
 
 class OriginDbPath(object):
 
@@ -392,12 +412,20 @@ class OriginDbPath(object):
         return "tasks"
 
     @classmethod
+    def db_sync_task_path(cls):
+        return "sync_tasks"
+
+    @classmethod
     def db_task_imp_from(cls):
         return cls.origin_path("tasks", OriginEnvar.task_name, 'imports_from')
 
     @classmethod
     def db_task_pub(cls):
         return cls.origin_path("tasks", OriginEnvar.task_name, 'pub_slots')
+
+    @classmethod
+    def db_sync_slot_path(cls):
+        return cls.origin_path("sync_tasks", OriginEnvar.task_name)
 
     @classmethod
     def db_task_pub_used_by(cls):
@@ -429,7 +457,7 @@ class ODBRef(object):
         gen_id = ",".join(id_list)
         return str(gen_id)
 
-    @property
+
     def oderef(self, ref_string, get_field=None):
         extr_collection, extr_entity_id = ref_string.split(",")
         if not get_field:
@@ -508,19 +536,18 @@ class OriginCreate(object):
         root_id = OriginId.db_show_id()
         asset_id = OriginDbPath.origin_path(OriginDbPath.db_category_path(), name)
         collection = self.db[OriginShowQuery().get_branch_type]
-        get_tasks_cobfig = OriginDefaults().get_show_defaults(OriginDefaults().root_tasks)
-
+        get_tasks_config = OriginDefaults().get_show_defaults(OriginDefaults().root_tasks)
 
         entity_attributes = dict(
             _id= asset_id,
             show_name= OriginEnvar.show_name,
             entry_name= name,
-            type= "build",
+            type= OriginShowQuery().get_branch_type,
             category= OriginEnvar.category,
             status= " ",
             assignment= {},
-            tasks= get_tasks_cobfig[0],
-            sync_tasks= dict.fromkeys(get_tasks_cobfig[1], []),
+            tasks= get_tasks_config[0],
+            sync_tasks= OriginTasksSync().create_from_template(),
             master_bundle=dict(main_stream=[]),
             active= True,
             definition= OriginDefaults().get_show_defaults(OriginDefaults().root_definitions),
@@ -540,21 +567,28 @@ class OriginCreate(object):
         except Exception as e:
             print("{} Error! Nothing Created!".format(e))
 
-    def asset_task(self, name):
+    def db_task(self, name):
         asset_id = OriginDbPath().db_entry_path()
         cursor = self.db[OriginShowQuery().get_branch_type]
         task_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_path(), name)
         tasks_defaults = otmp.task_defaults()
+
         cursor.update_one({"_id": asset_id}, {"$set": {task_db_path: tasks_defaults}})
+
+        OriginTasksSync().add_sync_task(name)
         print("{} Origin Asset Task created!".format(name))
+
         return name
 
-    def task_pub_slot(self, name):
+    def db_pub_slot(self, name):
         asset_id = OriginDbPath().db_entry_path()
         cursor = self.db[OriginShowQuery().get_branch_type]
         task_pub_slot_db_path = OriginDbPath.origin_path(OriginDbPath.db_task_pub(), name)
         tasks_pub_slot_defaults = otmp.tasks_pub_slot_schema()
+
         cursor.update_one({"_id": asset_id}, {"$set": {task_pub_slot_db_path: tasks_pub_slot_defaults}})
+
+        OriginTasksSync().add_sync_task_slot(name)
         print("{} Task Pub Slot created!".format(name))
         return name
 
@@ -587,7 +621,8 @@ class OriginShowQuery(object):
         show_structure = self.structure()
         all_referenced_entities = list(show_structure[branch][category])
         for entity in all_referenced_entities:
-            entities_found.append(ODBRef().oderef(entity, "entry_name"))
+            x,y = entity.split(",")
+            entities_found.append(ODBRef().oderef(ref_string=entity, get_field="entry_name"))
         return entities_found
 
     @property
@@ -645,14 +680,23 @@ class OriginEntitiesQuery(object):
         except:
             pass
 
-    def get_task_definition(self):
+    def get_tasks_full(self):
+        try:
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, 'tasks': 1})
+            for elements in tasks_list:
+                return elements["tasks"]
+        except:
+            pass
+
+    def get_task_definition(self, task=OriginEnvar.task_name):
         # TODO, needs to be checked for what it is used
         try:
-            task_path = OriginDbPath.origin_path("tasks", OriginEnvar.task_name)
+            task_path = OriginDbPath.origin_path("tasks", task)
             cursor = self.db[OriginShowQuery().get_branch_type]
             tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, task_path: 1})
             for tasks in tasks_list:
-                return (tasks["tasks"][OriginEnvar.task_name])
+                return (tasks["tasks"][task])
         except:
             pass
 
@@ -1232,7 +1276,86 @@ class OriginBundle(object):
 class OriginWorkSession(object):
     pass
 
+
+class OriginTasksSync(object):
+    def __init__(self):
+        self.db = xcon.server.xchange
+
+    @staticmethod
+    def create_from_template():
+        get_tasks_config = OriginDefaults().get_show_defaults(OriginDefaults().root_tasks)
+        entity_tasks = list(get_tasks_config[0])
+        save_elements_list = dict()
+        for task in entity_tasks:
+            task_definition = (get_tasks_config[0][task])
+            task_pub_slots = (list(task_definition["pub_slots"].keys()))
+            make_dictionary = dict.fromkeys(task_pub_slots, {})
+            nest_slot = {task: make_dictionary}
+            save_elements_list.update(nest_slot)
+
+        return save_elements_list
+
+    def capture_all(self):
+        try:
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, 'sync_tasks': 1})
+            for elements in tasks_list:
+                return (elements["sync_tasks"])
+        except:
+            pass
+
+    def add(self, data={}):
+        existing_sync_tasks = self.capture_all()
+        return existing_sync_tasks.update(data)
+
+    def add_sync_task(self, name):
+        asset_id = OriginDbPath().db_entry_path()
+        cursor = self.db[OriginShowQuery().get_branch_type]
+        sync_task_db_path = OriginDbPath.origin_path(OriginDbPath.db_sync_task_path(), name)
+        cursor.update_one({"_id": asset_id}, {"$set": {sync_task_db_path:{}}})
+        print("{} Sync Tasks saved!".format(name))
+
+    def add_sync_task_slot(self, name):
+        asset_id = OriginDbPath().db_entry_path()
+        cursor = self.db[OriginShowQuery().get_branch_type]
+        sync_task_db_path = OriginDbPath.origin_path(OriginDbPath.db_sync_slot_path(), name)
+        cursor.update_one({"_id": asset_id}, {"$set": {sync_task_db_path: {}}})
+        print("{} Sync Slot saved!".format(name))
+
+    def publish_sync_state(self):
+        existing_sync_tasks = self.capture_all()
+        version = OriginDBVersions().db_sync_tasks_ver_increase()
+        print (version)
+        entity_id = OriginId.db_sync_tasks_id(version)
+
+        entity_attributes = dict(
+            _id= entity_id,
+            show_name= OriginEnvar.show_name,
+            entry_name= OriginEnvar.entry_name,
+            category= OriginEnvar.category,
+            version=version,
+            sync_tasks= existing_sync_tasks,
+            date= xnow.return_date(),
+            time= xnow.return_time(),
+            owner= getpass.getuser()
+
+        )
+
+        try:
+            self.db.task_sync.insert_one(entity_attributes)
+
+        except Exception as e:
+            print("{} Error! Nothing Created!".format(e))
+
+    # def update(self, data):
+    #     update_sync = self.add(data)
+    #     self.commit(update_sync)
+
+
+
+
 if __name__ == "__main__":
+    import pprint
     from origin_data_base.OriginEnvar import OriginEnvar, OriginOSEnvar
 
     OriginOSEnvar.os_root = "D:/PROJECTS"
@@ -1240,8 +1363,8 @@ if __name__ == "__main__":
     OriginEnvar.show_name = "Test"
     OriginEnvar.branch_name = "vegetation"
     OriginEnvar.category = "trees"
-    OriginEnvar.entry_name = "testy_palm"
-    OriginEnvar.task_name = "task_test"
+    OriginEnvar.entry_name = "new_palm_tree"
+    OriginEnvar.task_name = "ooo_test"
 
     db_update = OriginUpdate()
     # db_update.task_imports_from(['testCCC','testB','testBBBBB'])
@@ -1252,10 +1375,19 @@ if __name__ == "__main__":
     ocreate = OriginCreate()
     # ocreate.db_project(name="Test")
     # ocreate.db_show_branch(name="vegetation", branch_type=OriginBranchTypes().build)
-    # ocreate.db_category(name="trees", tasks_type=OriginTasksTypes().props)
-    # ocreate.db_asset(name="testy_palm")
-    # ocreate.asset_task(name="task_test")
-    # ocreate.task_pub_slot(name="render_geo")
+    # ocreate.db_category(name="XCV", tasks_type=OriginTasksTypes().shots)
+    # ocreate.db_asset(name="0300")
+    # ocreate.db_task(name="ooo_test")
+    # ocreate.db_pub_slot(name="special_geo")
+    #####TEST MULTI INSERT#######
+    # asset_names = ["palm", "socca", "mocca"]
+    # for asset in asset_names:
+    #     ocreate.db_asset(name=asset)
+
+    # get_tasks_config = OriginDefaults().get_show_defaults(OriginDefaults().root_tasks)
+    # v = (get_tasks_config[0]["lidar"])
+    # print(list(v["pub_slots"].keys()))
+
 
 
     # dbRef = ODBRef("sdxcgdsjkhfg", "sdfkgkdf").generate_dbref
@@ -1264,7 +1396,7 @@ if __name__ == "__main__":
 
     pub = OriginPublish()
     # pub.db_work_file_save("cahe.abc")
-    m_pub = pub.db_publish()
+    # m_pub = pub.db_publish()
     # print(m_pub)
     # pub.db_slot_publish("xxx")
     # pub.create_master_bundle()
@@ -1278,10 +1410,50 @@ if __name__ == "__main__":
     # obundle.db_create_bundle_stream("RND")
 
     oq = OriginShowQuery()
-    # tsk_cont = oq.get_entities_names(branch='library_', category="TTT")
+    # tsk_cont = oq.get_entities_names(branch='vegetation', category="trees")
     # print(tsk_cont)
 
+
+    ent_q = OriginEntitiesQuery()
+
+    keys_to_add = {"used_in":"shots"}
+
+    tsks = ent_q.get_tasks_full()
+    tsks_names = list(tsks)
+    new_dictionary = {}
+
+    for task in tsks_names:
+        keys_to_add.update(tsks[task])
+        full_dict = {task:keys_to_add}
+        new_dictionary.update(full_dict)
+
+    pprint.pprint(new_dictionary)
+
+
+
+
+    # pprint.pprint(tsks)
+    # pprint.pprint(tsks_names)
+
+    sync = OriginTasksSync()
+    # sync.publish_sync_state()
+    # all_sync = sync.capture_all()
+    # print (all_sync)
+
+    # def get_tasks():
+    # db=xcon.server.xchange
+    # cursor = db[OriginShowQuery().get_branch_type]
+    # tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, 'sync_tasks': 1})
+    # for elements in tasks_list:
+    #     return (elements["sync_tasks"])
+
+
     opaths = OriginOutputPaths("v001", "render_geo", "cache.abc")
+
+    odb = ODBRef()
+    # get_all = odb.oderef('build,Test.vegetation.trees.testy_palm', "entry_name")
+    # print (get_all)
+
     # cc = opaths.main_publish_path()
     # print (cc)
 

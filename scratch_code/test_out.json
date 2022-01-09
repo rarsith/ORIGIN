@@ -1,0 +1,240 @@
+{
+    "lidar": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "concept": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "sculpting": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "modeling": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "texturing": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "rigging": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "groom": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "cfx_set": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "fx_set": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "surfacing": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "task_test": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "new_test": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "nnn_test": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    },
+    "ooo_test": {
+        "used_in": "shots",
+        "active": true,
+        "status": "NOT-STARTED",
+        "artist": "None",
+        "imports_from": {},
+        "pub_slots": {
+            "special_geo": {
+                "type": "",
+                "method": "",
+                "used_by": [],
+                "source": {},
+                "reviewable": true,
+                "active": true
+            }
+        }
+    }
+}
