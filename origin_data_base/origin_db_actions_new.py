@@ -1363,7 +1363,7 @@ if __name__ == "__main__":
     OriginEnvar.show_name = "Test"
     OriginEnvar.branch_name = "vegetation"
     OriginEnvar.category = "trees"
-    OriginEnvar.entry_name = "new_palm_tree"
+    OriginEnvar.entry_name = "superPalm"
     OriginEnvar.task_name = "ooo_test"
 
     db_update = OriginUpdate()
@@ -1375,10 +1375,10 @@ if __name__ == "__main__":
     ocreate = OriginCreate()
     # ocreate.db_project(name="Test")
     # ocreate.db_show_branch(name="vegetation", branch_type=OriginBranchTypes().build)
-    # ocreate.db_category(name="XCV", tasks_type=OriginTasksTypes().shots)
-    # ocreate.db_asset(name="0300")
+    # ocreate.db_category(name="trees", tasks_type=OriginTasksTypes().props)
+    # ocreate.db_asset(name="superPalm")
     # ocreate.db_task(name="ooo_test")
-    # ocreate.db_pub_slot(name="special_geo")
+    ocreate.db_pub_slot(name="special_geo")
     #####TEST MULTI INSERT#######
     # asset_names = ["palm", "socca", "mocca"]
     # for asset in asset_names:
@@ -1416,18 +1416,18 @@ if __name__ == "__main__":
 
     ent_q = OriginEntitiesQuery()
 
-    keys_to_add = {"used_in":"shots"}
-
-    tsks = ent_q.get_tasks_full()
-    tsks_names = list(tsks)
-    new_dictionary = {}
-
-    for task in tsks_names:
-        keys_to_add.update(tsks[task])
-        full_dict = {task:keys_to_add}
-        new_dictionary.update(full_dict)
-
-    pprint.pprint(new_dictionary)
+    # keys_to_add = {"used_in":"shots"}
+    #
+    # tsks = ent_q.get_tasks_full()
+    # tsks_names = list(tsks)
+    # new_dictionary = {}
+    #
+    # for task in tsks_names:
+    #     keys_to_add.update(tsks[task])
+    #     full_dict = {task:keys_to_add}
+    #     new_dictionary.update(full_dict)
+    #
+    # pprint.pprint(new_dictionary)
 
 
 
