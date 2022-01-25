@@ -671,6 +671,7 @@ class OriginEntitiesQuery(object):
     def __init__(self):
         self.db = xcon.server.xchange
 
+
     def get_tasks(self):
         try:
             cursor = self.db[OriginShowQuery().get_branch_type]
@@ -939,7 +940,7 @@ class OriginUpdate(object):
         db_address = OriginDbPath.origin_path(OriginDbPath.db_task_path(), "active")
         db_collection.update_one({"_id": OriginId.db_entry_id()}, {'$set': {db_address: is_active}})
 
-    def rem_assets_from_shot(show_name, show_branch, category, entry_name, asset_to_remove):
+    def rem_assets_from_shot(self, show_name, show_branch, category, entry_name, asset_to_remove):
         pass
 
     def remove_task_pub_slots(self):
@@ -983,6 +984,7 @@ class OriginPublish(object):
         self.db = xcon.server.xchange
 
     def get_db_publishes_ids(self, collection, show_name=None, branch_name=None, category_name=None, entry_name=None, task_name=None, view_limit=0):
+        #TODO change this to database aggregations
         store_value = list()
         db = xcon.server.xchange
 
@@ -1119,15 +1121,28 @@ class OriginPublish(object):
 
     def db_publish(self):
         task_pub_slots = OriginEntitiesQuery().get_task_pub_slots()
+        current_task = OriginEnvar().task_name
+
         main_publish = self.db_main_publish()
         for pub_slot in task_pub_slots:
+
+            get_sync_path = ".".join(["sync_tasks", current_task, pub_slot])
+
             pub_slots_publish = self.db_slot_publish(pub_slot)
 
-            OriginDbRef.add_db_id_reference(main_publish[1],
-                                            main_publish[0],
-                                            "publishing_slots",
-                                            pub_slots_publish[0],
-                                            pub_slots_publish[1])
+            OriginDbRef.add_db_id_reference(collection=main_publish[1],
+                                            parent_doc_id=main_publish[0],
+                                            destination_slot="publishing_slots",
+                                            id_to_add=pub_slots_publish[0],
+                                            from_collection=pub_slots_publish[1])
+
+            OriginDbRef.add_db_id_reference(collection=OriginShowQuery().get_branch_type,
+                                            parent_doc_id=OriginId.db_entry_id(),
+                                            destination_slot=get_sync_path,
+                                            id_to_add=pub_slots_publish[0],
+                                            from_collection=pub_slots_publish[1],
+                                            replace=True)
+
         return main_publish
 
     def db_work_file_save(self, file_name):
@@ -1316,7 +1331,7 @@ class OriginTasksSync(object):
         print("{} Sync Tasks saved!".format(name))
 
     def add_sync_task_slot(self, name):
-        asset_id = OriginDbPath().db_entry_path()
+        asset_id = OriginId().db_entry_id()
         cursor = self.db[OriginShowQuery().get_branch_type]
         sync_task_db_path = OriginDbPath.origin_path(OriginDbPath.db_sync_slot_path(), name)
         cursor.update_one({"_id": asset_id}, {"$set": {sync_task_db_path: {}}})
@@ -1347,6 +1362,19 @@ class OriginTasksSync(object):
         except Exception as e:
             print("{} Error! Nothing Created!".format(e))
 
+    def get_sync_task_slots(self):
+        try:
+            cursor = self.db[OriginShowQuery().get_branch_type]
+            sync_task_db_path = OriginDbPath.origin_path(OriginDbPath.db_sync_slot_path())
+            tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, sync_task_db_path: 1})
+            for elements in tasks_list:
+                sync_task_values = list(elements["sync_tasks"].values())[0]
+                sync_task_slots = list(sync_task_values.keys())
+                return sync_task_slots
+        except ValueError as vale:
+            print(vale)
+
+
     # def update(self, data):
     #     update_sync = self.add(data)
     #     self.commit(update_sync)
@@ -1362,9 +1390,9 @@ if __name__ == "__main__":
 
     OriginEnvar.show_name = "Test"
     OriginEnvar.branch_name = "vegetation"
-    OriginEnvar.category = "trees"
-    OriginEnvar.entry_name = "superPalm"
-    OriginEnvar.task_name = "ooo_test"
+    OriginEnvar.category = "treea"
+    OriginEnvar.entry_name = "palmer"
+    OriginEnvar.task_name = "rigging"
 
     db_update = OriginUpdate()
     # db_update.task_imports_from(['testCCC','testB','testBBBBB'])
@@ -1378,7 +1406,7 @@ if __name__ == "__main__":
     # ocreate.db_category(name="trees", tasks_type=OriginTasksTypes().props)
     # ocreate.db_asset(name="superPalm")
     # ocreate.db_task(name="ooo_test")
-    ocreate.db_pub_slot(name="special_geo")
+    # ocreate.db_pub_slot(name="special_geo")
     #####TEST MULTI INSERT#######
     # asset_names = ["palm", "socca", "mocca"]
     # for asset in asset_names:
@@ -1395,7 +1423,7 @@ if __name__ == "__main__":
     # print(dbRef)
 
     pub = OriginPublish()
-    # pub.db_work_file_save("cahe.abc")
+    # pub.db_work_file_save("cache.abc")
     # m_pub = pub.db_publish()
     # print(m_pub)
     # pub.db_slot_publish("xxx")
@@ -1416,58 +1444,23 @@ if __name__ == "__main__":
 
     ent_q = OriginEntitiesQuery()
 
-    # keys_to_add = {"used_in":"shots"}
-    #
-    # tsks = ent_q.get_tasks_full()
-    # tsks_names = list(tsks)
-    # new_dictionary = {}
-    #
-    # for task in tsks_names:
-    #     keys_to_add.update(tsks[task])
-    #     full_dict = {task:keys_to_add}
-    #     new_dictionary.update(full_dict)
-    #
-    # pprint.pprint(new_dictionary)
-
-
-
-
     # pprint.pprint(tsks)
     # pprint.pprint(tsks_names)
 
     sync = OriginTasksSync()
-    # sync.publish_sync_state()
+    synt_slots = sync.get_sync_task_slots()
+    print(synt_slots)
+    sync.publish_sync_state()
     # all_sync = sync.capture_all()
-    # print (all_sync)
-
-    # def get_tasks():
-    # db=xcon.server.xchange
-    # cursor = db[OriginShowQuery().get_branch_type]
-    # tasks_list = cursor.find({"_id": OriginId.db_entry_id()}, {'_id': 0, 'sync_tasks': 1})
-    # for elements in tasks_list:
-    #     return (elements["sync_tasks"])
-
+    # pprint.pprint (all_sync)
 
     opaths = OriginOutputPaths("v001", "render_geo", "cache.abc")
 
     odb = ODBRef()
     # get_all = odb.oderef('build,Test.vegetation.trees.testy_palm', "entry_name")
     # print (get_all)
-
     # cc = opaths.main_publish_path()
     # print (cc)
-
-
-
-    # oquery = OriginShowQuery()
-    # ff = oquery.structure()
-    # ttt = oquery.show_type()
-    # print(ff)
-    # print(ttt)
-
-    # OriginQuery.show(OriginPath.definition, OriginType.content)
-    # OriginCreate.Asset().at_path()
-    # print (ocreate)
 
     odefaults = OriginDefaults()
     # odefaults.get_show_defaults("tasks")
