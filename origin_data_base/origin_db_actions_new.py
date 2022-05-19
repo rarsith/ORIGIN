@@ -1067,6 +1067,7 @@ class OriginPublish(object):
         return published.inserted_id, collection_name
 
     def db_slot_publish(self, pub_slot):
+        #TODO check if slot is active
 
         collection_name = "_".join(["publish", "slots", OriginEnvar.task_name])
         version = OriginDBVersions().db_pubslot_ver_increase(collection_name, pub_slot)
@@ -1394,6 +1395,7 @@ if __name__ == "__main__":
     OriginEnvar.entry_name = "palmer"
     OriginEnvar.task_name = "rigging"
 
+
     db_update = OriginUpdate()
     # db_update.task_imports_from(['testCCC','testB','testBBBBB'])
     # db_update.update_task_is_active(False)
@@ -1449,7 +1451,7 @@ if __name__ == "__main__":
 
     sync = OriginTasksSync()
     synt_slots = sync.get_sync_task_slots()
-    print(synt_slots)
+    print(synt_slots, "<<")
     sync.publish_sync_state()
     # all_sync = sync.capture_all()
     # pprint.pprint (all_sync)
