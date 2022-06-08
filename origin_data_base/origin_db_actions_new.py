@@ -307,7 +307,7 @@ class OriginId(object):
     """
     Takes a list and joins the elements into a string
     Ex: list = ["element1", "element2"] >>>> result > "element1.element2"
-    To be used in generatin ids for the created entities
+    To be used for generating ids for entities at creation time
     """
 
     @classmethod
@@ -1117,7 +1117,7 @@ class OriginPublish(object):
 
         published_slot = self.db[collection_name].insert_one(save_content)
 
-        print("{0} slot has been published".format(pub_slot))
+        print("{0} slot {1} has been published".format(pub_slot, version))
         return published_slot.inserted_id, collection_name
 
     def db_publish(self):
@@ -1146,6 +1146,55 @@ class OriginPublish(object):
 
         return main_publish
 
+    def db_publish_sel(self, sel_pub_slots=[]):
+        current_task = OriginEnvar().task_name
+        task_pub_slots = OriginEntitiesQuery().get_task_pub_slots()
+        get_sync_tasks = OriginTasksSync().capture_all()
+        sync_to_curr_task = get_sync_tasks[current_task]
+
+        if len(sel_pub_slots)==0:
+            sel_pub_slots = task_pub_slots
+
+        for sync_slot in sel_pub_slots:
+             del sync_to_curr_task[sync_slot]
+
+        main_publish = self.db_main_publish()
+
+        for pub_slot in sel_pub_slots:
+
+            get_sync_path = ".".join(["sync_tasks", current_task, pub_slot])
+
+            pub_slots_publish = self.db_slot_publish(pub_slot)
+
+            OriginDbRef.add_db_id_reference(collection=main_publish[1],
+                                            parent_doc_id=main_publish[0],
+                                            destination_slot="publishing_slots",
+                                            id_to_add=pub_slots_publish[0],
+                                            from_collection=pub_slots_publish[1])
+
+            OriginDbRef.add_db_id_reference(collection=OriginShowQuery().get_branch_type,
+                                            parent_doc_id=OriginId.db_entry_id(),
+                                            destination_slot=get_sync_path,
+                                            id_to_add=pub_slots_publish[0],
+                                            from_collection=pub_slots_publish[1],
+                                            replace=True)
+
+        for inherited_slot in sync_to_curr_task.items():
+            get_collection = inherited_slot[1].split(",")
+
+            OriginDbRef.add_db_id_reference(collection=main_publish[1],
+                                            parent_doc_id=main_publish[0],
+                                            destination_slot="publishing_slots",
+                                            id_to_add=get_collection[1],
+                                            from_collection=get_collection[0])
+
+
+
+
+
+        return main_publish
+
+
     def db_work_file_save(self, file_name):
         version = OriginDBVersions().db_wip_files_version_increase("work_files")
         set_display_name = "_".join([OriginEnvar.entry_name,OriginEnvar.task_name, "work_file"])
@@ -1169,7 +1218,8 @@ class OriginPublish(object):
             publish_packaging= "wip_scene",
             display_name= set_display_name,
             origin=[],
-            components = dict(main_path = OriginOutputPaths(version, output_file_name=file_name).wip_file_path())
+            components = dict(main_path = OriginOutputPaths(version, output_file_name=file_name).wip_file_path()),
+            session=[]
 
         )
 
@@ -1385,15 +1435,16 @@ class OriginTasksSync(object):
 
 if __name__ == "__main__":
     import pprint
+
     from origin_data_base.OriginEnvar import OriginEnvar, OriginOSEnvar
 
     OriginOSEnvar.os_root = "D:/PROJECTS"
 
     OriginEnvar.show_name = "Test"
-    OriginEnvar.branch_name = "vegetation"
-    OriginEnvar.category = "treea"
-    OriginEnvar.entry_name = "palmer"
-    OriginEnvar.task_name = "rigging"
+    OriginEnvar.branch_name = "new_branch"
+    OriginEnvar.category = "some_category"
+    OriginEnvar.entry_name = "some_asset"
+    OriginEnvar.task_name = "modeling"
 
 
     db_update = OriginUpdate()
@@ -1404,11 +1455,12 @@ if __name__ == "__main__":
 
     ocreate = OriginCreate()
     # ocreate.db_project(name="Test")
-    # ocreate.db_show_branch(name="vegetation", branch_type=OriginBranchTypes().build)
-    # ocreate.db_category(name="trees", tasks_type=OriginTasksTypes().props)
-    # ocreate.db_asset(name="superPalm")
-    # ocreate.db_task(name="ooo_test")
+    # ocreate.db_show_branch(name="new_branch", branch_type=OriginBranchTypes().build)
+    # ocreate.db_category(name="some_category", tasks_type=OriginTasksTypes().characters)
+    # ocreate.db_asset(name="some_asset")
+    # ocreate.db_task(name="dodo_FX")
     # ocreate.db_pub_slot(name="special_geo")
+
     #####TEST MULTI INSERT#######
     # asset_names = ["palm", "socca", "mocca"]
     # for asset in asset_names:
@@ -1425,8 +1477,11 @@ if __name__ == "__main__":
     # print(dbRef)
 
     pub = OriginPublish()
-    # pub.db_work_file_save("cache.abc")
+    pub.db_work_file_save("cache.abc")
     # m_pub = pub.db_publish()
+
+    # existing_modeling_pub_slots = ['rend_geo', 'proxy_geo', 'utility', 'lidar', 'proj_geo', 'vport_mat', 'tex_object', 'curvature_map', 'ao_map', 'selection_map']
+    # m_pub02 = pub.db_publish_sel()
     # print(m_pub)
     # pub.db_slot_publish("xxx")
     # pub.create_master_bundle()
@@ -1450,9 +1505,9 @@ if __name__ == "__main__":
     # pprint.pprint(tsks_names)
 
     sync = OriginTasksSync()
-    synt_slots = sync.get_sync_task_slots()
-    print(synt_slots, "<<")
-    sync.publish_sync_state()
+    # synt_slots = sync.get_sync_task_slots()
+    # print(synt_slots, "<<")
+    # sync.publish_sync_state()
     # all_sync = sync.capture_all()
     # pprint.pprint (all_sync)
 
@@ -1467,189 +1522,4 @@ if __name__ == "__main__":
     odefaults = OriginDefaults()
     # odefaults.get_show_defaults("tasks")
 
-    import pprint
-    # import os
-    # import getpass
-    #
-    # db = xcon.server.xchange
-    #
-    # os.environ['XCG_PROJECT'] = 'Test'
-    # os.environ['XCG_PROJECT_BRANCH'] = 'assets'
-    # os.environ['XCG_PROJECT_CATEGORY'] = 'characters'
-    # os.environ['XCG_PROJECT_ENTITY'] = 'hulk'
-    # os.environ['XCG_ENTITY_TASK'] = 'modeling'
-    # #
-    # #
-    # show_name = os.environ.get('XCG_PROJECT')
-    # branch_name = os.environ.get('XCG_PROJECT_BRANCH')
-    # category_name = os.environ.get('XCG_PROJECT_CATEGORY')
-    # entity_name = os.environ.get('XCG_PROJECT_ENTITY')
-    # task_name = os.environ.get('XCG_ENTITY_TASK')
-    #
-    # current_user = get_current_user()
-    #
-    # v = get_tasks(show_name, branch_name, category_name, entity_name)
-    #
-    # # components = get_pub_slots(show_name, branch_name, category_name, entity_name, task_name)
-    # # main_publish = db_publish(show_name, branch_name, category_name, entity_name, task_name, branch_name, "0012",
-    # #                           "PENDING-REVIEW")
-    # # for component in components:
-    # #     secondary_publish = pub_slot_publish(show_name, branch_name, category_name, entity_name, task_name, component)
-    # #     add_db_id_reference(main_publish[1], main_publish[0], "publishing_slots", secondary_publish[0],secondary_publish[1])
-    #
-    # create_master_bundle(show_name, branch_name, category_name, entity_name)
-    # v = select_entity("bundles", show_name, branch_name, category_name, entity_name,"v0001")
-    # p = select_entity("publishes", show_name, branch_name, category_name, entity_name, "v0001")
-    # path_elements = ['bundle_slots', task_name]
-    # path_to_write = '.'.join(path_elements)
-    # bb = add_db_id_reference("bundles", str(v["_id"]), path_to_write, str(p["_id"]),"publishes")
 
-    # cc = get_db_publishes_ids ("publishes", "Dark", "assets", "characters", "nuoa")
-
-    # pprint.pprint (cc)
-
-    # db = xcon.server.xchange
-    # # doc_id = '60adf11a9d8e3f8d996f58f5'
-    # doc_id = ''
-    #
-    # # id_list = get_db_entity_attr_content('publishes', doc_id, 'publishing_slots')
-    # # for each_id in id_list:
-    # #     print(db.dereference(each_id)['slot_name'])
-    # vv = get_db_referenced_attr('publishes', doc_id, 'publishing_slots', 'parent_collection')
-    # print (type(ObjectId))
-    # print (vv)
-
-    # report_back = db.publishes.find_one({"show_name":show_name, "entry_name":entity_name, "version":"v0001", "task_name":task_name},{"_id":0})
-    # x = (report_back["publishing_slots"])
-    # print (report_back["publishing_slots"])
-    # for each in x:
-    #     get_back = db[collection_name].find_one({"_id": each})
-    #     print (get_back)
-
-    # vv = get_pub_slots(show_name, branch_name, category_name, entity_name, task_name)
-    # pprint.pprint(vv)
-
-    # bb = get_db_publishes_ids("publishes")
-    # pprint.pprint(bb)
-
-    # cc = get_sub_branches_content('Test', 'sequences', 'TST')
-    # print (cc)
-    # db_publish("DOmino", "characters", "assets", "sukka", "modeling", "john", "asset", "0013", "Pending-Review")
-
-    # user_task_assign("Fly", "characters", "assets", "spear", "facial_expressions", "Kuku")
-
-    # change_task_status("Fly", "characters", "assets", "spear", "facial_expressions", "WIP")
-
-    # db_ver_increase("Test", "assets", "hulk", "modeling", "john")
-
-    # create_tasks("Destroy","assets","JHJHGKJHG")
-
-    # add_tasks("Doom","shots","DDD","0010","retopology","modeling","sculpting")
-    # h = get_tasks("Doom","shots","DDD","0010")
-    # pprint.pprint(h)
-    # add_tasks(show_name, entry_category, parent_category, entry_name, task_name, *imports_from)
-    # add_asset_to_shot("Doom","DDD","0010", "clark", "characters", "5" )
-
-    # change_task_status('Fighter','GFF','shots','0010','ChoochityPuh','WIP')
-
-    # delete_task('Fighter','shots','GFF','0010','ChoochityPuh')
-
-    # get current session
-
-    # gg = get_tasks_package("Test", "assets",  "characters", "greenHulk")
-    # print(gg)
-    # ww = get_task_definition("Test", "assets",  "characters", "hulky", "modeling")
-    # print (ww)
-    # jj = get_show_base_structure('Test')
-    # print (jj)
-    # oo = get_show_branches_structure('Test')
-    # print (oo)
-    # pp = get_show_assets_categories('Test')
-    # print (pp)
-    # ss = get_all_active_assets('Test', 'characters')
-    # print (ss)
-    # bb = get_show_sequences('Test')
-    # print (bb)
-    # kl = get_all_active_shots('Test', 'TST')
-    # print (kl)
-    # Hi Anna
-
-    # mb = get_definition_element("Test", "sequences",  "TST", '0100', 'frame_in')
-    # print (mb)
-    # # create_user("Dodo", "Georgio", "georgio.antonio@gmail.com", "cook")
-    # op = get_task_pub_slots("Test", "sequences",  "VVV", '0150', 'animation')
-    # print (op)
-    # kl = get_pub_slots("Test", "sequences",  "TST", '0100', 'cam_track')
-    # pprint.pprint (kl)
-    # tty = get_tasks_content("Test", "sequences", "TST", '0100')
-    # pprint.pprint(tty)
-
-    # update_task_pub_used_by("Test", "sequences",  "TST", '0100', 'cam_track', 'HO','animation')
-
-    # dt = {'distortion': {'type': 'cfg', 'method': 'cfg_scn_exp', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'shot_cam': {'type': 'csh', 'method': 'mf_csh', 'used_by': ['animation'], 'source': {}, 'reviewable': False, 'active': True}, 'HO': {'type': 'csh', 'method': 'sf_csh', 'used_by': ['animation'], 'source': {}, 'reviewable': False, 'active': True}, 'locators': {'type': 'img', 'method': 'sf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'wit_cam_01': {'type': 'csh', 'method': 'mf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'wit_cam_02': {'type': 'csh', 'method': 'mf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'wit_cam_03': {'type': 'csh', 'method': 'mf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'wit_cam_04': {'type': 'csh', 'method': 'mf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}, 'wit_cam_05': {'type': 'csh', 'method': 'mf_csh', 'used_by': [], 'source': {}, 'reviewable': False, 'active': True}}
-
-    # lk = get_pub_used_by_task(dt, "animation")
-    # print (lk)
-
-    # bb = get_pub_used_by("Test", "sequences",  "TST", '0100', 'animation','HO')
-    # print (bb)
-
-    # qw = get_task_imports_from("Test", "sequences",  "DDDD", '0100', 'animation')
-    # print (qw)
-    # list_of_crap = ['plate_io', 'layout']
-    # str = get_pub_used_by("Test", "sequences",  "TST", '0100', 'animation', 'proxy_geo')
-    # print (str)
-    # jj = db_query("assets", "entry_name", show_name="Now", category="characters",active=True)
-    # print(jj)
-
-    # sss = get_entry_definition("Test", "sequences",  "VVV", '0150')
-    # print (sss)
-    # the_list = (list(sss.keys()))
-    # make_nice = xutil.write_nice_names(the_list)
-    # print (make_nice)
-
-    # set_task_imports_from("Doom", "shots",  "GGF", "1500", "animation", imports_from=["paint", "cfx", "layout", "compositing", "fx", "roto"])
-    # gg = get_task_imports_from("Aliens", "assets", "environment", "cave", "modeling")
-    # print gg
-    # Aliens
-    # assets
-    # environment
-    # city
-    # concept
-    # imports_from_list = [u'concept', u'ttss', u'cfx_set', u'rigging']
-    # ww = set_task_imports_from("Blade_Runner", "assets", "characters", "hulk", "concept", imports_from_list)
-    # pprint.pprint(ww)
-
-    # imports_from_list = [u'concept', u'ttss', u'cfx_set', u'rigging']
-    # set_task_imports_from("Aliens", "assets", "environment", "cave", "vbdd", imports_from_list)
-
-    # list_to_insert = [{'images':{'type':'img', 'reviewable':'True', 'active':'True'}},
-    #                   {'videos':{'type':'vid', 'reviewable':'True', 'active':'True'}},
-    #                   {'pdfs':{'type':'pdf', 'reviewable':'True', 'active':'True'}}]
-    # set_task_pub_slot_dict("Blade_Runner", "assets", "characters", "hulk", "modeling", list_to_insert)
-    # get_id = xqry.db_q_entry_id("Duda","show", "assets", "characters", "bukka", "entry_id" )
-    # omit_sequence ("Doom", "NNO")
-    # omit_shot("Doom", "GGF", "1500")
-    # remove_entry("Blade_Runner", "sequences", "BHJHU", "0010")
-    # kk = get_pub_method("Blade_Runner", "assets", "vehicles", "opel", "modeling", "vport_mat")
-    #
-    # print (kk)
-    # print ("")
-    # h = get_show_base_structure("gugu")
-    # print (h)
-    # # for i in gg:
-    #     print (i.items())
-
-    # jj = get_show_base_structure("gugu")
-    # print (jj)
-    # loo = get_entry_type("Test", "sequences",  "VVV", '0150')
-    # print (loo)
-
-    # sh = get_all_active_shows()
-    # print (sh)
-    #
-    # h = get_show_branches_structure("Test")
-    # print (h)
-    #
-    # sub = get_sub_branches("Test", "assets")
-    # print (sub)

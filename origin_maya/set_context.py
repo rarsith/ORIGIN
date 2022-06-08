@@ -12,8 +12,8 @@ else:
         sys.path.append(origin_root)
 
 
-os.environ['ORIGIN_PROJECT']='Test'
+os.environ['ORIGIN_PROJECT']='Remus'
 os.environ['ORIGIN_PROJECT_BRANCH']='assets'
 os.environ['ORIGIN_PROJECT_CATEGORY']='characters'
-os.environ['ORIGIN_PROJECT_ENTITY']= 'hulk'
+os.environ['ORIGIN_PROJECT_ENTITY']= 'donkey'
 os.environ['ORIGIN_ENTITY_TASK']='modeling'
